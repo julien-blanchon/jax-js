@@ -1,0 +1,107 @@
+/** @file Utilities for working with tree-like container data structures ("pytrees"). */
+
+import { deepEqual, unzip2 } from "./utils";
+
+export enum NodeType {
+  Array = "Array",
+  Object = "Object",
+  Leaf = "Leaf",
+}
+
+/** Analog to the JAX "pytree" object, but for JavaScript. */
+export class JsTreeDef {
+  static leaf = new JsTreeDef(NodeType.Leaf, null, []);
+
+  constructor(
+    public readonly nodeType: NodeType,
+    public readonly nodeMetadata: any, // Must be comparable with deepEqual.
+    public readonly childTreedefs: JsTreeDef[]
+  ) {}
+
+  /** Returns a string representation of this tree definition. */
+  toString(root = true): string {
+    if (root) {
+      return "JsTreeDef(" + this.toString(false) + ")";
+    }
+    switch (this.nodeType) {
+      case NodeType.Leaf:
+        return "*";
+      case NodeType.Array:
+        return `[${this.childTreedefs.map((x) => x.toString(false)).join(", ")}]`;
+      case NodeType.Object:
+        const parts: string[] = [];
+        for (let i = 0; i < this.childTreedefs.length; i++) {
+          parts.push(
+            `${quoteObjectKey(this.nodeMetadata[i])}: ${this.childTreedefs[i].toString(false)}`
+          );
+        }
+        return `{${parts.join(", ")}}`;
+    }
+  }
+
+  /** Compare this tree definition with another. */
+  equals(other: JsTreeDef): boolean {
+    return (
+      this.nodeType === other.nodeType &&
+      deepEqual(this.nodeMetadata, other.nodeMetadata) &&
+      this.childTreedefs.length === other.childTreedefs.length &&
+      this.childTreedefs.every((x, i) => x.equals(other.childTreedefs[i]))
+    );
+  }
+}
+
+function quoteObjectKey(key: string): string {
+  // Check if the key is a valid JavaScript identifier
+  if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key)) {
+    return key; // No need to quote
+  }
+  return JSON.stringify(key);
+}
+
+/** Flatten a structured object, returning the tree definition. */
+export function flatten(x: any): [any[], JsTreeDef] {
+  const leaves: any[] = [];
+  const treedef = _flatten(x, leaves);
+  return [leaves, treedef];
+}
+
+function _flatten(x: any, leaves: any[]): JsTreeDef {
+  if (Array.isArray(x)) {
+    const childTrees = x.map((c) => _flatten(c, leaves));
+    return new JsTreeDef(NodeType.Array, null, childTrees);
+  } else if (typeof x === "object" && x !== null) {
+    const [keys, values] = unzip2(Object.entries(x));
+    const childTrees = values.map((c) => _flatten(c, leaves));
+    return new JsTreeDef(NodeType.Object, keys, childTrees);
+  } else {
+    leaves.push(x);
+    return JsTreeDef.leaf;
+  }
+}
+
+/** Reconstruct a structured object from the flattened representation. */
+export function unflatten(treedef: JsTreeDef, leaves: Iterable<any>): any {
+  return _unflatten(treedef, leaves[Symbol.iterator]());
+}
+
+function _unflatten(treedef: JsTreeDef, leaves: Iterator<any>): any {
+  switch (treedef.nodeType) {
+    case NodeType.Leaf:
+      const { value, done } = leaves.next();
+      if (done) {
+        throw new Error("Ran out of leaves while unflattening JsTree");
+      }
+      return value;
+    case NodeType.Array:
+      return treedef.childTreedefs.map((c) => _unflatten(c, leaves));
+    case NodeType.Object:
+      const obj: any = {};
+      for (let i = 0; i < treedef.childTreedefs.length; i++) {
+        obj[treedef.nodeMetadata[i]] = _unflatten(
+          treedef.childTreedefs[i],
+          leaves
+        );
+      }
+      return obj;
+  }
+}
