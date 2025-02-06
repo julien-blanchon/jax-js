@@ -2,6 +2,12 @@ import * as tf from "@tensorflow/tfjs-core";
 import "@tensorflow/tfjs-core/dist/public/chained_ops/register_all_chained_ops";
 import "@tensorflow/tfjs-core/dist/register_all_gradients";
 import "@tensorflow/tfjs-backend-cpu";
+import { unzip2, zip } from "./utils";
+import {
+  JsTreeDef,
+  flatten as treeFlatten,
+  unflatten as treeUnflatten,
+} from "./tree";
 
 export enum DType {
   Float32 = "float32",
@@ -379,20 +385,6 @@ function zerosLike(val: TracerValue): Array {
   return new Array(tf.zeros(aval.shape, aval.dtype));
 }
 
-function unzip2<T, U>(pairs: [T, U][]): [T[], U[]] {
-  const lst1: T[] = [];
-  const lst2: U[] = [];
-  for (const [x, y] of pairs) {
-    lst1.push(x);
-    lst2.push(y);
-  }
-  return [lst1, lst2];
-}
-
-function zip<T, U>(xs: T[], ys: U[]): [T, U][] {
-  return xs.map((x, i) => [x, ys[i]]);
-}
-
 class JVPTracer extends Tracer {
   constructor(
     trace: Trace,
@@ -470,26 +462,59 @@ const jvpRules: Partial<Record<Primitive, JvpRule>> = {
   },
 };
 
-export function jvpV1(
-  f: (...x: TracerValue[]) => Tracer,
+function jvpFlat(
+  f: (...x: TracerValue[]) => TracerValue[],
   primals: TracerValue[],
   tangents: TracerValue[]
-): [Tracer, Tracer] {
+): [Tracer[], Tracer[]] {
   using main = newMain(JVPTrace);
   const trace = new JVPTrace(main);
   const tracersIn = zip(primals, tangents).map(
     ([x, t]) => new JVPTracer(trace, pureArray(x), pureArray(t))
   );
-  const out = f(...tracersIn);
-  const tracerOut = fullRaise(trace, out) as JVPTracer;
-  return [tracerOut.primal, tracerOut.tangent];
+  const outs = f(...tracersIn);
+  const tracersOut = outs.map((out) => fullRaise(trace, out) as JVPTracer);
+  return unzip2(tracersOut.map((t) => [t.primal, t.tangent]));
+}
+
+export function jvp(
+  f: (...x: any[]) => any,
+  primals: any[],
+  tangents: any[]
+): [any, any] {
+  const [primalsFlat, inTree] = treeFlatten(primals);
+  const [tangentsFlat, inTree2] = treeFlatten(tangents);
+  if (!inTree.equals(inTree2)) {
+    throw new TypeError("Mismatched tree structures in jvp");
+  }
+
+  let outTreeStored: JsTreeDef | null = null;
+  const flatFun = (...argsFlat: any[]) => {
+    const treeArgs = treeUnflatten(inTree, argsFlat);
+    const out = f(...treeArgs);
+    const [outFlat, outTree] = treeFlatten(out);
+    outTreeStored = outTree;
+    return outFlat;
+  };
+
+  const [primalsOutFlat, tangentsOutFlat] = jvpFlat(
+    flatFun,
+    primalsFlat,
+    tangentsFlat
+  );
+  if (outTreeStored === null) {
+    throw new Error("outTreeStored was not set");
+  }
+  const primalsOut = treeUnflatten(outTreeStored, primalsOutFlat);
+  const tangentsOut = treeUnflatten(outTreeStored, tangentsOutFlat);
+  return [primalsOut, tangentsOut];
 }
 
 export function deriv(
-  f: (x: TracerValue) => Tracer
+  f: (x: TracerValue) => TracerValue
 ): (x: TracerValue) => Tracer {
   return (x) => {
-    const [y, dy] = jvpV1(f, [x], [1.0]);
+    const [_y, dy] = jvp(f, [x], [1.0]);
     return dy;
   };
 }

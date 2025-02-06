@@ -5,13 +5,13 @@ import * as tree from "./tree";
 
 export { numpy, tree };
 
-// Fudged array types for composable transformations.
+// TODO: Improve the type hints here.
+export const jvp = core.jvp as <F extends (...args: any) => any>(
+  f: F,
+  primals: Parameters<F>,
+  tangents: Parameters<F>
+) => [ReturnType<F>, ReturnType<F>];
 
-// export const jvpV1 = core.jvpV1 as unknown as (
-//   f: (x: ArrayLike) => ArrayLike,
-//   primals: ArrayLike[],
-//   tangents: ArrayLike[]
-// ) => [Array, Array];
 export const deriv = core.deriv as unknown as (
   f: (x: ArrayLike) => ArrayLike
 ) => (x: ArrayLike) => Array;

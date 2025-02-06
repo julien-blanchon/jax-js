@@ -69,7 +69,7 @@ function _flatten(x: any, leaves: any[]): JsTreeDef {
   if (Array.isArray(x)) {
     const childTrees = x.map((c) => _flatten(c, leaves));
     return new JsTreeDef(NodeType.Array, null, childTrees);
-  } else if (typeof x === "object" && x !== null) {
+  } else if (typeof x === "object" && x !== null && x.constructor === Object) {
     const [keys, values] = unzip2(Object.entries(x));
     const childTrees = values.map((c) => _flatten(c, leaves));
     return new JsTreeDef(NodeType.Object, keys, childTrees);
@@ -89,7 +89,7 @@ function _unflatten(treedef: JsTreeDef, leaves: Iterator<any>): any {
     case NodeType.Leaf:
       const { value, done } = leaves.next();
       if (done) {
-        throw new Error("Ran out of leaves while unflattening JsTree");
+        throw new TypeError("Ran out of leaves while unflattening JsTree");
       }
       return value;
     case NodeType.Array:
