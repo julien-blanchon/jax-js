@@ -152,20 +152,23 @@ abstract class Tracer {
     return this; // default implementation
   }
 
+  // These types aren't technically correct since they don't account for the
+  // fact that tracers can be lifted to different levels. But they simplify the
+  // API visible to users.
   neg() {
-    return this.aval._neg(this);
+    return this.aval._neg(this) as this;
   }
-  add(other: Tracer) {
-    return this.aval._add(this, other);
+  add(other: this) {
+    return this.aval._add(this, other) as this;
   }
-  mul(other: Tracer) {
-    return this.aval._mul(this, other);
+  mul(other: this) {
+    return this.aval._mul(this, other) as this;
   }
-  gt(other: Tracer) {
-    return this.aval._gt(this, other);
+  gt(other: this) {
+    return this.aval._gt(this, other) as this;
   }
-  lt(other: Tracer) {
-    return this.aval._lt(this, other);
+  lt(other: this) {
+    return this.aval._lt(this, other) as this;
   }
 
   // TODO

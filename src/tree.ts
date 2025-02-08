@@ -8,6 +8,8 @@ export enum NodeType {
   Leaf = "Leaf",
 }
 
+export type JsTree<T> = T | JsTree<T>[] | { [key: string]: JsTree<T> };
+
 /** Analog to the JAX "pytree" object, but for JavaScript. */
 export class JsTreeDef {
   static leaf = new JsTreeDef(NodeType.Leaf, null, []);
@@ -59,46 +61,49 @@ function quoteObjectKey(key: string): string {
 }
 
 /** Flatten a structured object, returning the tree definition. */
-export function flatten(tree: any): [any[], JsTreeDef] {
-  const leaves: any[] = [];
+export function flatten<T>(tree: JsTree<T>): [T[], JsTreeDef] {
+  const leaves: T[] = [];
   const treedef = _flatten(tree, leaves);
   return [leaves, treedef];
 }
 
-function _flatten(tree: any, leaves: any[]): JsTreeDef {
+function _flatten<T>(tree: JsTree<T>, leaves: T[]): JsTreeDef {
   if (Array.isArray(tree)) {
     const childTrees = tree.map((c) => _flatten(c, leaves));
     return new JsTreeDef(NodeType.Array, null, childTrees);
   } else if (
     typeof tree === "object" &&
     tree !== null &&
-    tree.constructor === Object
+    tree.constructor === Object // Needed to avoid treating Array as an object.
   ) {
     const [keys, values] = unzip2(Object.entries(tree));
     const childTrees = values.map((c) => _flatten(c, leaves));
     return new JsTreeDef(NodeType.Object, keys, childTrees);
   } else {
-    leaves.push(tree);
+    leaves.push(tree as T);
     return JsTreeDef.leaf;
   }
 }
 
 /** Get the leaves of a tree. */
-export function leaves(tree: any): any[] {
-  return flatten(tree)[0];
+export function leaves<T>(tree: JsTree<T>): T[] {
+  return flatten<T>(tree)[0];
 }
 
 /** Get the treedef for a tree. */
-export function structure(tree: any): JsTreeDef {
-  return flatten(tree)[1];
+export function structure<T>(tree: JsTree<T>): JsTreeDef {
+  return flatten<T>(tree)[1];
 }
 
 /** Reconstruct a structured object from the flattened representation. */
-export function unflatten(treedef: JsTreeDef, leaves: Iterable<any>): any {
+export function unflatten<T>(
+  treedef: JsTreeDef,
+  leaves: Iterable<T>
+): JsTree<T> {
   return _unflatten(treedef, leaves[Symbol.iterator]());
 }
 
-function _unflatten(treedef: JsTreeDef, leaves: Iterator<any>): any {
+function _unflatten<T>(treedef: JsTreeDef, leaves: Iterator<T>): JsTree<T> {
   switch (treedef.nodeType) {
     case NodeType.Leaf:
       const { value, done } = leaves.next();

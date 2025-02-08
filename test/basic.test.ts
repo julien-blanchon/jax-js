@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { deriv, numpy as np } from "jax-js";
+import { deriv, jvp, numpy as np } from "jax-js";
 
 // test("x is 3", () => {
 //   expect(x).toBe(3);
@@ -25,6 +25,14 @@ test("can create array", async () => {
   // console.log(await sinderiv.js());
 
   const x = 3.0;
+
+  const result = jvp(
+    (x: { a: np.Array; b: np.Array }) => x.a.add(x.b),
+    [{ a: 1, b: 2 }],
+    [{ a: 1, b: 0 }]
+  );
+  console.log(result[0].js());
+  console.log(result[1].js());
 
   console.log(np.sin(x).js());
   console.log(deriv(np.sin)(x).js());
