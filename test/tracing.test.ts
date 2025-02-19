@@ -96,4 +96,12 @@ suite("jax.grad()", () => {
     expect(df(0)).toBeAllclose(0);
     expect(df(-4)).toBeAllclose(48);
   });
+
+  test("can compute higher derivatives", () => {
+    const f = (x: np.Array) => np.sin(np.cos(x));
+    const df = grad(f); // d/dx sin(cos(x)) = -sin(x)cos(cos(x))
+    const ddf = grad(df); // d^2/dx^2 sin(cos(x)) = -sin^2(x)sin(cos(x)) - cos(x)cos(cos(x))
+    expect(df(3)).toBeAllclose(-0.077432003);
+    expect(ddf(3)).toBeAllclose(0.559854311);
+  });
 });
