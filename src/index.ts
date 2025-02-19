@@ -67,7 +67,9 @@ export const vjp = core.vjp as <F extends (...args: any[]) => JsTree<Array>>(
   ...primals: MapJsTree<Parameters<F>, Array, ArrayLike>
 ) => [
   ReturnType<F>,
-  (cotangents: MapJsTree<ReturnType<F>, Array, ArrayLike>) => Parameters<F>,
+  (
+    cotangents: MapJsTree<ReturnType<F>, Array, ArrayLike>
+  ) => MapJsTree<Parameters<F>, ArrayLike, Array>,
 ];
 
 /**
