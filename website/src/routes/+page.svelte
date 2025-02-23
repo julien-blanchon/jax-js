@@ -136,12 +136,11 @@ const y = np.dot(X, np.array([1, 2])).add(3);
         <hr class="mb-6 border-gray-300" />
 
         <p class="text-sm mb-4">
-          Try out jax-js in this in-browser editor. Machine learning and
-          numerical computing on the web!
+          Try out jax-js. Machine learning and numerical computing on the web!
         </p>
         <p class="text-sm mb-4">
           The goal is to <em>just use</em> NumPy and JAX in the browser, on WASM
-          or GPU.
+          or WebGPU — with JIT and kernel fusion.
         </p>
 
         <pre class="mb-4 text-sm bg-gray-100 px-2 py-1 rounded"><code
@@ -178,22 +177,25 @@ const y = np.dot(X, np.array([1, 2])).add(3);
       >
         {#snippet a()}
           <div class="flex flex-col min-w-0">
-            <div class="px-4 py-1 flex items-center gap-4">
+            <div class="px-4 py-2 flex items-center gap-1">
               <button
-                class="bg-green-600 hover:bg-green-500 text-white px-4 py-0.5 flex items-center"
+                class="bg-emerald-100 hover:bg-emerald-200 active:scale-105 transition-all rounded-md text-sm px-3 py-0.5 flex items-center"
                 onclick={handleRun}
               >
-                <PlayIcon size={16} class="mr-1.5" />
+                <PlayIcon size={14} class="mr-1.5" />
                 Run
               </button>
               <button
-                class="bg-gray-600 hover:bg-gray-500 text-white px-4 py-0.5 flex items-center"
+                class="hover:bg-gray-100 active:scale-105 transition-all rounded-md text-sm px-3 py-0.5 flex items-center"
                 onclick={handleFormat}
               >
-                <PaletteIcon size={16} class="mr-1.5" />
+                <PaletteIcon size={14} class="mr-1.5" />
                 Format
               </button>
             </div>
+            <!-- <div class="ml-4 text-sm text-gray-700 pb-1 flex items-center">
+              <FileIcon size={14} class="mr-1 text-sky-600" /> index.ts
+            </div> -->
             <div class="flex-1 min-h-0">
               <ReplEditor
                 initialText={codeSamples[selected].code}
