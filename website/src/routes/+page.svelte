@@ -2,6 +2,10 @@
   import { base } from "$app/paths";
 </script>
 
+<svelte:head>
+  <title>jax-js</title>
+</svelte:head>
+
 <main class="mx-auto my-12 px-4 sm:px-6 max-w-screen-md">
   <div class="mb-10">
     <h1 class="text-6xl text-center font-bold mb-4">jax-js</h1>

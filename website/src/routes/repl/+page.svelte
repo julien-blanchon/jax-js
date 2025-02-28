@@ -262,6 +262,10 @@ const y = np.dot(X, np.array([1, 2])).add(3);
   });
 </script>
 
+<svelte:head>
+  <title>jax-js REPL</title>
+</svelte:head>
+
 <div class="h-dvh">
   <SplitPane
     type="horizontal"
