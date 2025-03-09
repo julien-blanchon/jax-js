@@ -365,8 +365,30 @@ class View {
     return View.create(newShape, newStrides, this.offset, newMask);
   }
 
+  /** Flip (reverse) one or more axes of the view. */
+  flip(arg: boolean[]): View {
+    if (arg.length !== this.ndim)
+      throw new Error(`Invalid flip ${jstr(arg)} for ${jstr(this.shape)}`);
+    const strides = this.strides.slice();
+    let offset = this.offset;
+    const mask: Pair[] | null = this.mask ? this.mask.slice() : null;
+    for (let i = 0; i < this.ndim; i++) {
+      const s = this.shape[i];
+      if (arg[i]) {
+        strides[i] = -strides[i];
+        offset += (s - 1) * this.strides[i];
+        if (mask) mask[i] = [s - mask[i][1], s - mask[i][0]];
+      }
+    }
+    return View.create(this.shape, strides, offset, mask);
+  }
+
   /** Reshape the view into a new shape. */
   reshape(newShape: number[]): View | null {
+    if (deepEqual(this.shape, newShape)) return this;
+    if (newShape.some((s) => s < 0))
+      throw new Error(`Reshape cannot have negative numbers ${jstr(newShape)}`);
+
     throw new Error("Not implemented");
   }
 }
