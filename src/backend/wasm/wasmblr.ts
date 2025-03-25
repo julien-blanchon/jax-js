@@ -53,6 +53,18 @@ function encodeString(s: string): number[] {
   return [bytes.length, ...bytes];
 }
 
+function encodeBlocktype(type: Type[]): number[] {
+  assert(type.length > 0, "blocktype must have at least one type");
+  if (type.length === 1) return [type[0].typeId];
+  // multi-value block: https://github.com/WebAssembly/multi-value
+  return [
+    0x60, // function type
+    ...encodeUnsigned(0),
+    ...encodeUnsigned(type.length),
+    ...type.map((t) => t.typeId),
+  ];
+}
+
 function concat(out: number[], inp: number[]): void {
   out.push(...inp);
 }
@@ -166,18 +178,18 @@ export class CodeGenerator {
   nop() {
     this.emit(0x01);
   }
-  block(type: Type) {
+  block(...type: Type[]) {
     this.emit(0x02);
-    this.emit(type.typeId);
+    this.emit(encodeBlocktype(type));
   }
-  loop(type: Type) {
+  loop(...type: Type[]) {
     this.emit(0x03);
-    this.emit(type.typeId);
+    this.emit(encodeBlocktype(type));
   }
-  if(type: Type) {
+  if(...type: Type[]) {
     assert(this.pop().typeId === this.i32.typeId, "if_: expected i32");
     this.emit(0x04);
-    this.emit(type.typeId);
+    this.emit(encodeBlocktype(type));
   }
   else() {
     this.emit(0x05);
