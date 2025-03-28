@@ -194,6 +194,10 @@ export class CodeGenerator {
   else() {
     this.emit(0x05);
   }
+  /** End a block (`block`, `if`/`else`, `loop`, or function). */
+  end() {
+    this.emit(0x0b);
+  }
   /** Branch to a block a certain depth outward on the stack. */
   br(depth: number) {
     this.emit(0x0c);
@@ -205,15 +209,20 @@ export class CodeGenerator {
     this.emit(0x0d);
     this.emit(encodeUnsigned(depth));
   }
-  /** End a block (`block`, `if`/`else`, `loop`). */
-  end() {
-    this.emit(0x0b);
+  /** Return from a function, branching out of the outermost block. */
+  return() {
+    this.emit(0x0f);
   }
   /** Call a function with the given ID. */
   call(fn: number) {
     assert(fn < this.#functions.length, "function index does not exist");
     this.emit(0x10);
     this.emit(encodeUnsigned(fn));
+  }
+  /** Throw away an operand on the stack. */
+  drop() {
+    this.pop();
+    this.emit(0x1a);
   }
 
   /** Export a function. */
@@ -547,6 +556,8 @@ class I32 {
   eqz = BINARY_OP("eqz", 0x45, "i32", "i32", "i32");
   eq = BINARY_OP("eq", 0x46, "i32", "i32", "i32");
   ne = BINARY_OP("ne", 0x47, "i32", "i32", "i32");
+  trunc_f32_s = UNARY_OP("trunc_f32_s", 0xa8, "f32", "i32");
+  trunc_f32_u = UNARY_OP("trunc_f32_u", 0xa9, "f32", "i32");
   load = LOAD_OP("load", 0x28, "i32");
   load8_s = LOAD_OP("load8_s", 0x2c, "i32");
   load8_u = LOAD_OP("load8_u", 0x2d, "i32");
@@ -598,6 +609,8 @@ class F32 {
   min = BINARY_OP("min", 0x96, "f32", "f32", "f32");
   max = BINARY_OP("max", 0x97, "f32", "f32", "f32");
   copysign = BINARY_OP("copysign", 0x98, "f32", "f32", "f32");
+  convert_i32_s = UNARY_OP("convert_i32_s", 0xb2, "i32", "f32");
+  convert_i32_u = UNARY_OP("convert_i32_u", 0xb3, "i32", "f32");
   load = LOAD_OP("load", 0x2a, "f32");
   store = STORE_OP("store", 0x38, "f32");
 }
