@@ -63,6 +63,10 @@ export class Array {
     this.#pending = pending;
   }
 
+  get backend(): BackendType {
+    return this.#backend.type;
+  }
+
   static zeros(
     shape: number[],
     { dtype, backend }: { dtype?: DType; backend?: BackendType },

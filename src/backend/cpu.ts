@@ -1,8 +1,10 @@
 import { AluExp } from "../alu";
-import { Backend, Executable, Slot, SlotError } from "../backend";
+import { Backend, BackendType, Executable, Slot, SlotError } from "../backend";
 
 /** Most basic implementation of `Backend` for testing. */
 export class CPUBackend implements Backend {
+  type: BackendType = "cpu";
+
   readonly buffers: Map<Slot, { ref: number; buffer: ArrayBuffer }>;
   nextSlot: number;
 

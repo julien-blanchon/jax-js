@@ -78,6 +78,9 @@ export type Slot = number;
 
 /** A device backend. */
 export interface Backend {
+  /** The name of the backend as a string. */
+  type: BackendType;
+
   /** Allocate a new slot with reference count 1. */
   malloc(size: number, initialData?: ArrayBuffer): Slot;
 

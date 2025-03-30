@@ -1,9 +1,11 @@
 import { AluExp, AluGroup, AluOp, DType } from "../alu";
-import { Backend, Executable, Slot, SlotError } from "../backend";
+import { Backend, BackendType, Executable, Slot, SlotError } from "../backend";
 import { DEBUG } from "../utils";
 
 /** Implementation of `Backend` that uses WebGPU in browsers. */
 export class WebGPUBackend implements Backend {
+  type: BackendType = "webgpu";
+
   readonly pipelines: ShaderPipelineCache;
   readonly syncReader: SyncReader;
   readonly buffers: Map<Slot, { ref: number; buffer: GPUBuffer }>;
