@@ -50,4 +50,11 @@ describe.each(backendTypes)("Backend '%s'", (backend) => {
       new Float32Array([10, 6, 10, -34]),
     );
   });
+
+  test("can add array to itself", () => {
+    const a = arrayFromData(new Float32Array([1, 2, 3]), { backend });
+    // Make sure duplicate references don't trip up the backend.
+    const b = a.add(a).add(a);
+    expect(b.dataSync()).toEqual(new Float32Array([3, 6, 9]));
+  });
 });
