@@ -1,6 +1,6 @@
 import { describe, expect, test as globalTest } from "vitest";
 import { backendTypes, init } from "./backend";
-import { Array } from "./array";
+import { Array, arrayFromData } from "./array";
 
 const backendsAvailable = await init(...backendTypes);
 
@@ -31,5 +31,14 @@ describe.each(backendTypes)("Backend '%s'", (backend) => {
     expect(ar3.shape).toEqual([2, 2]);
     expect(ar3.dtype).toEqual("float32");
     expect(await ar3.data()).toEqual(new Float32Array([2, 2, 2, 2]));
+  });
+
+  test("can construct arrays from data", () => {
+    const a = arrayFromData(new Float32Array([1, 2, 3, 4]), { backend });
+    const b = arrayFromData(new Float32Array([10, 5, 2, -8.5]), { backend });
+    const c = a.mul(b);
+    expect(c.shape).toEqual([4]);
+    expect(c.dtype).toEqual("float32");
+    expect(c.dataSync()).toEqual(new Float32Array([10, 10, 6, -34]));
   });
 });

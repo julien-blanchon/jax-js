@@ -217,3 +217,38 @@ export class Array {
     return new Float32Array(buf);
   }
 }
+
+export function arrayFromData(
+  data: Float32Array | Int32Array,
+  {
+    dtype,
+    backend: backendType,
+  }: { dtype?: DType; backend?: BackendType } = {},
+): Array {
+  const backend = getBackend(backendType);
+  if (data instanceof Float32Array) {
+    if (dtype && dtype !== DType.Float32) {
+      throw new Error("Float32Array must have float32 type");
+    }
+    const slot = backend.malloc(data.byteLength, data.buffer);
+    return new Array(
+      slot,
+      ShapeTracker.fromShape([data.length]),
+      DType.Float32,
+      backend,
+    );
+  } else if (data instanceof Int32Array) {
+    if (dtype && dtype !== DType.Int32) {
+      throw new Error("Int32Array must have int32 type");
+    }
+    const slot = backend.malloc(data.byteLength, data.buffer);
+    return new Array(
+      slot,
+      ShapeTracker.fromShape([data.length]),
+      DType.Int32,
+      backend,
+    );
+  } else {
+    throw new Error("Unsupported data type");
+  }
+}
