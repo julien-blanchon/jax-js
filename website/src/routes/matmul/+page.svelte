@@ -39,7 +39,7 @@ fn mm_write(row: u32, col: u32, value: f32) {
   C[row * DIM + col] = value;
 }
 
-@compute @workgroup_size(16, 16, 1)
+@compute @workgroup_size(32, 32, 1)
 fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
   // Compute the output coordinates.
   let row: u32 = global_id.y;
@@ -74,7 +74,7 @@ var<workgroup> Bsub: array<array<f32, TILE_SIZE>, TILE_SIZE>;
 const M : u32 = 2048u;  // Number of rows of A and C.
 const N : u32 = 2048u;  // Number of columns of B and C.
 const K : u32 = 2048u;  // Number of columns of A and rows of B.
-const TILE_SIZE : u32 = 16u; // Workgroup tile size.
+const TILE_SIZE : u32 = 32u; // Workgroup tile size.
 
 // Helper functions similar to tfjs codegen.
 fn mm_readA(row: u32, col: u32) -> f32 {
@@ -475,7 +475,7 @@ fn main(
         const passEncoder = commandEncoder.beginComputePass();
         passEncoder.setPipeline(pipeline);
         passEncoder.setBindGroup(0, bindGroup);
-        passEncoder.dispatchWorkgroups(n / 16, n / 16);
+        passEncoder.dispatchWorkgroups(n / 32, n / 32);
         passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
       } else if (variant === "shmem-tiling-basic") {
@@ -500,7 +500,7 @@ fn main(
         const passEncoder = commandEncoder.beginComputePass();
         passEncoder.setPipeline(pipeline);
         passEncoder.setBindGroup(0, bindGroup);
-        passEncoder.dispatchWorkgroups(n / 16, n / 16);
+        passEncoder.dispatchWorkgroups(n / 32, n / 32);
         passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
       } else if (variant === "unroll-4x4-vec4") {
