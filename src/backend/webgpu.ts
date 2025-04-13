@@ -304,7 +304,27 @@ function pipelineSource(
     }
   };
 
-  emit(`result[gidx] = ${gen(exp)};`, popIndent, "}");
+  if (!kernel.reduction) {
+    emit(`result[gidx] = ${gen(exp)};`);
+  } else {
+    // Simple, unoptimized reduction kernel.
+    const re = kernel.reduction;
+    emit(
+      `var acc: ${dtypeToWgsl(re.dtype)} = ${constToWgsl(re.dtype, re.identity)};`,
+      `for (var ridx: i32 = 0; ridx < ${re.size}; ridx++) {`,
+      pushIndent,
+    );
+    const item = gen(exp);
+    if (re.op === AluOp.Add) emit(`acc += ${item};`);
+    else if (re.op === AluOp.Mul) emit(`acc *= ${item};`);
+    else if (re.op === AluOp.Min) emit(`acc = min(acc, ${item});`);
+    else if (re.op === AluOp.Max) emit(`acc = max(acc, ${item});`);
+    else throw new Error(`Unsupported reduction op: ${re.op}`);
+    emit(popIndent, "}");
+    emit(`result[gidx] = acc;`);
+  }
+
+  emit(popIndent, "}");
   return {
     shader: shader.join("\n"),
     grid: [Math.ceil(kernel.size / workgroupSize), 1],

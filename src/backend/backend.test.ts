@@ -104,9 +104,7 @@ describe.each(backendTypes)("Backend '%s'", (backendType) => {
     }
   });
 
-  test("performs reduction", ({ skip }) => {
-    if (backendType !== "cpu") skip(); // reduction not on webgpu yet
-
+  test("performs reduction", () => {
     const backend = getBackend(backendType);
 
     const array = new Float32Array([1, 1, 2, 3, 5, 7]);

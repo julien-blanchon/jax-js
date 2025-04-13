@@ -22,7 +22,8 @@ npm test
 - [ ] Custom WebGPU backend, removing tfjs dependency
   - [x] Low-level operations
   - [ ] Create `class Array {}` wrappers
-  - [ ] Reduction operations
+  - [x] Reduction operations
+- [ ] Kernel tuning
   - [ ] "Group" optimizations
   - [ ] "Unroll" optimizations
   - [ ] "Upcast" optimizations (i.e., Wasm SIMD)
