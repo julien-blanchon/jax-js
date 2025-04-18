@@ -53,12 +53,12 @@ export function transpose(x: TracerValue, perm?: number[]) {
   return bind1(Primitive.Transpose, [x], { perm });
 }
 
-export function broadcast(x: TracerValue, shape: number[], axes: number[]) {
-  return bind1(Primitive.Broadcast, [x], { shape, axes });
+export function broadcast(x: TracerValue, shape: number[], axis: number[]) {
+  return bind1(Primitive.Broadcast, [x], { shape, axis });
 }
 
 export function reduceSum(x: TracerValue, axis?: number | number[]) {
-  if (axis === null) {
+  if (axis === undefined) {
     if (x instanceof Tracer) {
       axis = range(x.shape.length);
     } else {

@@ -1,4 +1,4 @@
-import { AluExp, AluOp, DType, Kernel } from "../alu";
+import { AluExp, AluOp, DType, Kernel, Reduction } from "../alu";
 import {
   accessorAluExp,
   accessorGlobal,
@@ -9,7 +9,7 @@ import {
   Slot,
   variables,
 } from "../backend";
-import { ShapeTracker } from "../shape";
+import { ShapeTracker, unravelAlu } from "../shape";
 import {
   deepEqual,
   isPermutation,
@@ -196,6 +196,25 @@ export class Array extends Tracer {
     return this.reshape([-1]);
   }
 
+  /** Move axes to the rightmost dimension of the shape. */
+  #moveAxesDown(axis: number[]): Array {
+    if (axis.length === 0) return this.reshape(this.shape.concat(1));
+    const newShape: number[] = [];
+    const keptAxes: number[] = [];
+    const shiftedAxes: number[] = [];
+    for (let i = 0; i < this.#st.shape.length; i++) {
+      if (axis.includes(i)) {
+        shiftedAxes.push(i);
+        length *= this.#st.shape[i];
+      } else {
+        keptAxes.push(i);
+        newShape.push(this.#st.shape[i]);
+      }
+    }
+    newShape.push(-1);
+    return this.#transpose(keptAxes.concat(shiftedAxes)).reshape(newShape);
+  }
+
   #transpose(perm?: number[]): Array {
     if (perm) {
       if (!isPermutation(perm, this.ndim))
@@ -303,6 +322,54 @@ export class Array extends Tracer {
     return Array.#binaryCustom(op, custom, [this, other]);
   }
 
+  /** Reduce the last dimension of the array by an operation. */
+  #reduce(op: AluOp): Array {
+    if (this.ndim === 0) throw new Error("Cannot reduce a scalar");
+    const shape = this.shape;
+    const reduction = new Reduction(this.#dtype, op, shape[shape.length - 1]);
+    const newShape = shape.slice(0, -1);
+    const newSize = newShape.reduce((a, b) => a * b, 1);
+
+    const gidx = gidxVar(newSize); // first n-1 axes are indexed by gidx
+    const ridx = ridxVar(shape[shape.length - 1]); // last axis indexed by ridx
+
+    const indices = [...unravelAlu(newShape, gidx), ridx];
+    const [index, valid] = this.#st.toAluExp(indices);
+
+    let exp: AluExp;
+    const inputs: Slot[] = [];
+    if (this.#source instanceof AluExp) {
+      // If already AluExp, inline it into the reduction.
+      exp = AluExp.where(
+        valid,
+        this.#source.substitute({ idx: index }),
+        AluExp.f32(0),
+      );
+    } else {
+      // Otherwise, use the global index.
+      inputs.push(this.#source);
+      exp = AluExp.where(
+        valid,
+        AluExp.globalIndex(DType.Float32, 0, index),
+        AluExp.f32(0),
+      );
+    }
+
+    const kernel = new Kernel(inputs.length, newSize, exp, reduction);
+    const output = this.#backend.malloc(kernel.size * 4);
+    const pending = [
+      ...this.#pending,
+      new PendingExecute(kernel, inputs, [output]),
+    ];
+    return new Array(
+      output,
+      ShapeTracker.fromShape(newShape),
+      this.#dtype,
+      this.#backend,
+      pending,
+    );
+  }
+
   /**
    * Normalizes this array into one backed by a `Slot`.
    *
@@ -391,8 +458,7 @@ export class Array extends Tracer {
         return [x.#unary(AluOp.Cos)];
       },
       [Primitive.ReduceSum]([x], { axis }: { axis: number[] }) {
-        throw new Error("unimplemented");
-        // return [new Array(tf.sum(x.data, axis))];
+        return [x.#moveAxesDown(axis).#reduce(AluOp.Add)];
       },
       [Primitive.Greater]([x, y]) {
         // `x > y` is equivalent to `x != y && !(x < y)`
@@ -410,14 +476,14 @@ export class Array extends Tracer {
       },
       [Primitive.Broadcast](
         [x],
-        { shape, axes }: { shape: number[]; axes: number[] },
+        { shape, axis }: { shape: number[]; axis: number[] },
       ) {
         let st = x.#st;
-        if (axes.length > 0) {
-          // First, unsqueeze each dimension of "axes".
+        if (axis.length > 0) {
+          // First, unsqueeze each dimension of "axis".
           const unsqueezed = [...x.#st.shape];
-          for (const axis of axes.toSorted()) {
-            unsqueezed.splice(axis, 0, 1);
+          for (const i of axis.toSorted()) {
+            unsqueezed.splice(i, 0, 1);
           }
           st = st.reshape(unsqueezed);
         }

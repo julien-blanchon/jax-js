@@ -33,7 +33,7 @@ export const transpose = core.transpose as (
 export const broadcast = core.broadcast as (
   x: ArrayLike,
   shape: number[],
-  axes: number[],
+  axis: number[],
 ) => Array;
 export const reduceSum = core.reduceSum as (
   x: ArrayLike,

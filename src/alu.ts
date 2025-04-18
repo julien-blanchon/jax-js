@@ -332,13 +332,17 @@ export class Reduction {
   constructor(
     /** Data type of the values being reduced over. */
     readonly dtype: DType,
-    /** Operation to perform. Only a few reduction ops are supported. */
-    readonly op: AluOp.Add | AluOp.Mul | AluOp.Min | AluOp.Max,
+    /** Operation to perform. Only ops in `AluGroup.Reduce` are supported. */
+    readonly op: AluOp,
     /** Size of the reduction axis. */
     readonly size: number,
     /** Follow-up expression defined with the "reduced" variable, defaults to identity. */
     readonly fusion: AluExp = AluExp.variable(dtype, "reduced"),
-  ) {}
+  ) {
+    if (!AluGroup.Reduce.has(op)) {
+      throw new TypeError(`Unsupported reduction: ${op}`);
+    }
+  }
 
   /** Get the identity for this reduction operation. */
   get identity(): any {
@@ -354,9 +358,8 @@ export class Reduction {
       else if (this.op === AluOp.Mul) return 1;
       else if (this.op === AluOp.Min) return Infinity;
       else if (this.op === AluOp.Max) return -Infinity;
-    } else {
-      throw new Error(`Unsupported reduction type ${this.dtype}`);
     }
+    throw new TypeError(`Unsupported reduction: ${this.op} ${this.dtype}`);
   }
 
   /** Evaluate this operation on CPU. */
@@ -396,8 +399,7 @@ export class Reduction {
           -Infinity,
         );
       }
-    } else {
-      throw new Error(`Unsupported reduction type ${this.dtype}`);
     }
+    throw new TypeError(`Unsupported reduction: ${this.op} ${this.dtype}`);
   }
 }

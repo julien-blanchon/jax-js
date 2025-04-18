@@ -133,9 +133,9 @@ function handleScalarBroadcasting(nd: number, x: Tracer, d: number | null) {
   if (d === null || nd === ndim(x)) {
     return x;
   } else {
-    const axes = range(ndim(x), nd);
-    const shape = [...x.shape, ...axes.map(() => 1)];
-    return broadcast(x, shape, axes);
+    const axis = range(ndim(x), nd);
+    const shape = [...x.shape, ...axis.map(() => 1)];
+    return broadcast(x, shape, axis);
   }
 }
 
