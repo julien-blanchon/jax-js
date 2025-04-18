@@ -10,7 +10,6 @@ npm test
 
 ## Next on Eric's mind
 
-- "Array" interface to replace tfjs (`await` to get data)
 - How to do optimizations?? map out the plan
 - Think about two-stage `cumsum()`
 - Think about [`Symbol.toPrimitive`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol/toPrimitive)
@@ -20,9 +19,9 @@ npm test
 - [x] It works!
 - [x] Demos: Browser REPL / editor
 - [x] First custom kernel
-- [ ] Custom WebGPU backend, removing tfjs dependency
+- [x] Custom WebGPU backend, removing tfjs dependency
   - [x] Low-level operations
-  - [ ] Create `class Array {}` wrappers
+  - [x] Create `class Array {}` wrappers
   - [x] Reduction operations
 - [ ] Kernel tuning
   - [ ] "Group" optimizations

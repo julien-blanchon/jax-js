@@ -157,6 +157,9 @@ export abstract class Tracer {
   get shape() {
     return this.aval.shape;
   }
+  get dtype() {
+    return this.aval.dtype;
+  }
 
   fullLower(): Tracer {
     return this; // default implementation
@@ -179,6 +182,9 @@ export abstract class Tracer {
   }
   lt(other: this | TracerValue) {
     return less(this, other) as this;
+  }
+  transpose(perm?: number[]): this {
+    return transpose(this, perm) as this;
   }
 }
 

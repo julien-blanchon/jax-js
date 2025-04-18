@@ -1,19 +1,22 @@
 import { expect, suite, test } from "vitest";
 import {
-  numpy as np,
-  makeJaxpr,
+  grad,
+  init,
   jvp,
   linearize,
+  makeJaxpr,
+  numpy as np,
   vjp,
-  grad,
 } from "@jax-js/core";
+
+await init("cpu");
 
 suite("jax.makeJaxpr()", () => {
   test("tracks a nullary function", () => {
     const { jaxpr, consts } = makeJaxpr(() => np.mul(2, 2))();
     expect(jaxpr.toString()).toMatchInlineSnapshot(`
       "{ lambda  .
-        let 
+        let
         in ( 4 ) }"
     `);
     expect(consts).toEqual([]);

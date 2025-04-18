@@ -15,7 +15,9 @@ import { ShapeTracker, unravelAlu } from "./shape";
 export type BackendType = "cpu" | "webgpu";
 export const backendTypes: BackendType[] = ["cpu", "webgpu"];
 
-let defaultBackend: BackendType = "webgpu";
+// TODO: Switch to Wasm or WebGL after implemented. WebGPU is not available on
+// test platform or all browsers, so it shouldn't be the default.
+let defaultBackend: BackendType = "cpu";
 const initializedBackends = new Map<BackendType, Backend>();
 
 /**

@@ -1,6 +1,6 @@
 import { describe, expect, test as globalTest } from "vitest";
-import { backendTypes, init } from "./backend";
-import { Array, arrayFromData } from "./array";
+import { backendTypes, init } from "../backend";
+import { Array, array } from "./array";
 
 const backendsAvailable = await init(...backendTypes);
 
@@ -15,10 +15,10 @@ describe.each(backendTypes)("Backend '%s'", (backend) => {
     expect(await ar.data()).toEqual(
       new Float32Array([0, 0, 0, 0, 0, 0, 0, 0, 0]),
     );
-    expect(await ar.T.data()).toEqual(
+    expect(await ar.transpose().data()).toEqual(
       new Float32Array([0, 0, 0, 0, 0, 0, 0, 0, 0]),
     );
-    expect(ar.T.dataSync()).toEqual(
+    expect(ar.transpose().dataSync()).toEqual(
       new Float32Array([0, 0, 0, 0, 0, 0, 0, 0, 0]),
     );
   });
@@ -40,19 +40,19 @@ describe.each(backendTypes)("Backend '%s'", (backend) => {
   });
 
   test("can construct arrays from data", () => {
-    const a = arrayFromData(new Float32Array([1, 2, 3, 4]), { backend });
-    const b = arrayFromData(new Float32Array([10, 5, 2, -8.5]), { backend });
+    const a = array([1, 2, 3, 4], { backend });
+    const b = array([10, 5, 2, -8.5], { backend });
     const c = a.mul(b);
     expect(c.shape).toEqual([4]);
     expect(c.dtype).toEqual("float32");
     expect(c.dataSync()).toEqual(new Float32Array([10, 10, 6, -34]));
-    expect(c.reshape([2, 2]).T.dataSync()).toEqual(
+    expect(c.reshape([2, 2]).transpose().dataSync()).toEqual(
       new Float32Array([10, 6, 10, -34]),
     );
   });
 
   test("can add array to itself", () => {
-    const a = arrayFromData(new Float32Array([1, 2, 3]), { backend });
+    const a = array([1, 2, 3], { backend });
     // Make sure duplicate references don't trip up the backend.
     const b = a.add(a).add(a);
     expect(b.dataSync()).toEqual(new Float32Array([3, 6, 9]));

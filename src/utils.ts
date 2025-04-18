@@ -128,3 +128,10 @@ export function findPow2(hint: number, max: number): number {
   }
   return ret;
 }
+
+export type RecursiveArray<T> = T | RecursiveArray<T>[];
+
+export function recursiveFlatten<T>(ar: RecursiveArray<T>): T[] {
+  if (!Array.isArray(ar)) return [ar];
+  return (ar as any).flat(Infinity); // Escape infinite type depth
+}

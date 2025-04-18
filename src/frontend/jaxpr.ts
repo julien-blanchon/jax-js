@@ -60,7 +60,7 @@ export class Lit {
   }
 
   get value(): number | boolean {
-    return this.val.data.dataSync()[0];
+    return this.val.dataSync()[0];
   }
 }
 

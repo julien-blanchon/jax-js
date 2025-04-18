@@ -1,12 +1,10 @@
-import * as tf from "@tensorflow/tfjs-core";
-
 import { DType } from "./alu";
-import { Array } from "./frontend/array";
+import { Array, array, scalar } from "./frontend/array";
 import * as core from "./frontend/core";
 import * as vmapModule from "./frontend/vmap";
 import { deepEqual } from "./utils";
 
-export { Array, DType };
+export { Array, array, DType, scalar };
 
 export const float32 = DType.Float32;
 export const int32 = DType.Int32;
@@ -50,24 +48,6 @@ export const moveaxis = vmapModule.moveaxis as (
 /** Compute the number of dimensions of an array. */
 export const ndim = core.ndim as (x: ArrayLike) => number;
 
-export function array(
-  values: Array | tf.TensorLike,
-  { shape, dtype }: { shape?: number[]; dtype?: DType } = {},
-): Array {
-  if (values instanceof Array) {
-    let data = values.data;
-    if (shape) {
-      data = tf.reshape(data, shape);
-    }
-    if (dtype) {
-      data = tf.cast(data, dtype);
-    }
-    return new Array(data);
-  } else {
-    return new Array(tf.tensor(values, shape, dtype));
-  }
-}
-
 /** Return if two arrays are element-wise equal within a tolerance. */
 export function allclose(
   actual: ArrayLike,
@@ -81,14 +61,12 @@ export function allclose(
   if (!deepEqual(x.shape, y.shape)) {
     return false;
   }
-  return Boolean(
-    tf
-      .all(
-        tf.lessEqual(
-          tf.abs(tf.sub(x.data, y.data)),
-          tf.add(atol, tf.mul(rtol, y.data.abs())),
-        ),
-      )
-      .dataSync()[0],
-  );
+  const xData = x.dataSync();
+  const yData = y.dataSync();
+  for (let i = 0; i < xData.length; i++) {
+    if (xData[i] - yData[i] > atol + rtol * Math.abs(yData[i])) {
+      return false;
+    }
+  }
+  return true;
 }

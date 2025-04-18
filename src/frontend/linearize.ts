@@ -491,7 +491,7 @@ export function grad(f: (...primals: any) => Tracer) {
     if (!(y instanceof Tracer) || ndim(y) !== 0) {
       throw new TypeError("grad requires a scalar output");
     }
-    if (y.aval.dtype !== DType.Float32) {
+    if (y.dtype !== DType.Float32) {
       throw new TypeError("grad currently only supports float32");
     }
     // JAX convention, differentiate with respect to the first argument.

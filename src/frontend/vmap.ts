@@ -1,7 +1,5 @@
-import * as tf from "@tensorflow/tfjs-core";
-
 import { deepEqual, range, unzip2, zip } from "../utils";
-import { Array, pureArray } from "./array";
+import { eye, pureArray } from "./array";
 import {
   AbstractValue,
   add,
@@ -282,5 +280,5 @@ export function jacfwd(f: any, x: Tracer) {
   }
   const [size] = x.shape;
   const pushfwd = (v: Tracer) => jvp(f, [x], [v])[1];
-  return vmap(pushfwd, [0])(new Array(tf.eye(size)));
+  return vmap(pushfwd, [0])(eye(size));
 }

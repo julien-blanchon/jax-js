@@ -1,3 +1,4 @@
+import { init, BackendType } from "./backend";
 import * as jaxprModule from "./frontend/jaxpr";
 import * as jvpModule from "./frontend/jvp";
 import * as linearizeModule from "./frontend/linearize";
@@ -9,7 +10,7 @@ import type { JsTree, JsTreeDef } from "./tree";
 
 import "./polyfills";
 
-export { numpy, tree };
+export { init, BackendType, numpy, tree };
 
 // Convert a subtype of JsTree<A> into a JsTree<B>, with the same structure.
 type MapJsTree<T, A, B> = T extends A
