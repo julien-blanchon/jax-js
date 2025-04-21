@@ -40,7 +40,7 @@ export const broadcast = core.broadcast as (
   shape: number[],
   axis: number[],
 ) => Array;
-export const reduceSum = core.reduceSum as (
+export const sum = core.reduceSum as (
   x: ArrayLike,
   axis?: number | number[],
 ) => Array;

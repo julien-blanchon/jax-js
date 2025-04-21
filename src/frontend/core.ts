@@ -181,6 +181,9 @@ export abstract class Tracer {
   lt(other: this | TracerValue) {
     return less(this, other) as this;
   }
+  sum(axis?: number | number[]) {
+    return reduceSum(this, axis) as this;
+  }
   transpose(perm?: number[]): this {
     return transpose(this, perm) as this;
   }

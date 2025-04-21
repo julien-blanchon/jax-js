@@ -35,7 +35,7 @@ suite("jax.jvp()", () => {
   });
 
   test("works for vector to scalar functions", () => {
-    const f = (x: np.Array) => np.reduceSum(x);
+    const f = (x: np.Array) => np.sum(x);
     const x = np.array([1, 2, 3]);
     expect(f(x)).toBeAllclose(6);
     expect(jvp(f, [x], [np.array([1, 1, 1])])[1]).toBeAllclose(3);
@@ -98,6 +98,7 @@ suite("jax.vmap()", () => {
     const f = (x: np.Array) => ({
       double: x.mul(2),
       square: x.mul(x),
+      sum: x.sum(),
     });
     const batchedF = vmap(f, [0]);
     const x = np.array([
@@ -113,6 +114,7 @@ suite("jax.vmap()", () => {
       [1, 4, 9],
       [16, 25, 36],
     ]);
+    expect(result.sum.js()).toEqual([6, 15]);
   });
 
   test("vectorizes over pytrees inputs", () => {
@@ -171,6 +173,7 @@ suite("jax.numpy.eye()", () => {
 
   test("can be multiplied", () => {
     const x = np.eye(3, 5).mul(-42);
+    expect(x.sum()).toBeAllclose(-126);
     expect(x).toBeAllclose([
       [-42, 0, 0, 0, 0],
       [0, -42, 0, 0, 0],
