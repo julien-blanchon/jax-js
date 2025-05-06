@@ -1,14 +1,14 @@
-import { AluExp, AluOp, DType, Kernel, Reduction } from "../alu";
 import {
   accessorAluExp,
   accessorGlobal,
-  Backend,
-  BackendType,
-  Executable,
-  getBackend,
-  Slot,
-  variables,
-} from "../backend";
+  AluExp,
+  AluOp,
+  AluVar,
+  DType,
+  Kernel,
+  Reduction,
+} from "../alu";
+import { Backend, BackendType, Executable, getBackend, Slot } from "../backend";
 import { ShapeTracker, unravelAlu } from "../shape";
 import {
   deepEqual,
@@ -28,16 +28,6 @@ import {
 } from "./core";
 
 const JsArray = globalThis.Array;
-
-function gidxVar(size: number) {
-  // global index
-  return AluExp.special(DType.Int32, "gidx", size);
-}
-
-function ridxVar(size: number) {
-  // reduction index
-  return AluExp.special(DType.Int32, "ridx", size);
-}
 
 class PendingExecute {
   prepared: Executable | null = null;
@@ -250,9 +240,8 @@ export class Array extends Tracer {
       return new Array(exp, this.#st, this.#dtype, this.#backend);
     }
 
-    const gidx = gidxVar(this.#st.size);
     const exp = new AluExp(op, this.#dtype, [
-      accessorGlobal(0, this.#st, gidx),
+      accessorGlobal(0, this.#st, unravelAlu(this.#st.shape, AluVar.gidx)),
     ]);
     const kernel = new Kernel(1, this.#st.size, exp);
     const output = this.#backend.malloc(kernel.size * 4);
@@ -304,16 +293,15 @@ export class Array extends Tracer {
       return new Array(exp, lhs.#st, exp.dtype, lhs.#backend);
     }
 
-    const gidx = gidxVar(lhs.#st.size);
-
     const inputs: Slot[] = [];
     const src: AluExp[] = [];
 
     for (const ar of [lhs, rhs]) {
+      const indices = unravelAlu(ar.#st.shape, AluVar.gidx);
       if (ar.#source instanceof AluExp) {
-        src.push(accessorAluExp(ar.#source, ar.#st, gidx));
+        src.push(accessorAluExp(ar.#source, ar.#st, indices));
       } else {
-        src.push(accessorGlobal(inputs.length, ar.#st, gidx));
+        src.push(accessorGlobal(inputs.length, ar.#st, indices));
         inputs.push(ar.#source);
       }
     }
@@ -345,13 +333,10 @@ export class Array extends Tracer {
     if (this.ndim === 0) throw new Error("Cannot reduce a scalar");
     const shape = this.shape;
     const reduction = new Reduction(this.#dtype, op, shape[shape.length - 1]);
-    const newShape = shape.slice(0, -1);
+    const newShape = shape.slice(0, -1); // first n-1 axes are in the shape
     const newSize = newShape.reduce((a, b) => a * b, 1);
 
-    const gidx = gidxVar(newSize); // first n-1 axes are indexed by gidx
-    const ridx = ridxVar(shape[shape.length - 1]); // last axis indexed by ridx
-
-    const indices = [...unravelAlu(newShape, gidx), ridx];
+    const indices = [...unravelAlu(newShape, AluVar.gidx), AluVar.ridx];
     const [index, valid] = this.#st.toAluExp(indices);
 
     let exp: AluExp;
@@ -397,9 +382,9 @@ export class Array extends Tracer {
    * Calling this twice is a no-op.
    */
   #realize(): void {
-    const gidx = gidxVar(this.#st.size);
+    const indices = unravelAlu(this.#st.shape, AluVar.gidx);
     if (this.#source instanceof AluExp) {
-      const exp = accessorAluExp(this.#source, this.#st, gidx);
+      const exp = accessorAluExp(this.#source, this.#st, indices);
       const kernel = new Kernel(0, this.#st.size, exp);
       const output = this.#backend.malloc(kernel.size * 4);
       const pendingItem = new PendingExecute(kernel, [], [output]);
@@ -409,7 +394,7 @@ export class Array extends Tracer {
     } else {
       // Only realize if the ShapeTracker is non-contiguous.
       if (this.#st.contiguous) return;
-      const exp = accessorGlobal(0, this.#st, gidx);
+      const exp = accessorGlobal(0, this.#st, indices);
       const kernel = new Kernel(1, this.#st.size, exp);
       const output = this.#backend.malloc(kernel.size * 4);
       const pendingItem = new PendingExecute(kernel, [this.#source], [output]);
@@ -700,7 +685,7 @@ export function eye(
   }
 
   const exp = AluExp.cmplt(
-    AluExp.mod(variables.idx, AluExp.i32(numCols + 1)),
+    AluExp.mod(AluVar.idx, AluExp.i32(numCols + 1)),
     AluExp.i32(1),
   );
   return new Array(

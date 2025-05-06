@@ -1,7 +1,15 @@
 import { describe, expect, test as globalTest } from "vitest";
 
-import { AluExp, AluOp, DType, Kernel, Reduction } from "../alu";
-import { accessorGlobal, backendTypes, getBackend, init } from "../backend";
+import {
+  accessorGlobal,
+  AluExp,
+  AluOp,
+  AluVar,
+  DType,
+  Kernel,
+  Reduction,
+} from "../alu";
+import { backendTypes, getBackend, init } from "../backend";
 import { ShapeTracker } from "../shape";
 import { range } from "../utils";
 
@@ -20,9 +28,9 @@ describe.each(backendTypes)("Backend '%s'", (backendType) => {
     const c = backend.malloc(3 * 4);
 
     try {
-      const gidx = AluExp.special(DType.Int32, "gidx", 3);
-      const arg1 = accessorGlobal(0, shape, gidx);
-      const arg2 = accessorGlobal(1, shape.flip([true]), gidx);
+      const gidx = AluVar.gidx;
+      let arg1 = accessorGlobal(0, shape, [gidx]);
+      let arg2 = accessorGlobal(1, shape.flip([true]), [gidx]);
 
       const exe1 = await backend.prepare(
         new Kernel(2, 3, AluExp.mul(arg1, arg2)),
@@ -38,6 +46,16 @@ describe.each(backendTypes)("Backend '%s'", (backendType) => {
       backend.dispatch(exe2, [a, b], [c]);
       const buf2 = await backend.read(c);
       expect(new Float32Array(buf2)).toEqual(new Float32Array([7, 7, 7]));
+
+      // Now try it with GlobalView.
+      arg1 = AluExp.globalView(DType.Float32, 0, shape, [gidx]);
+      arg2 = AluExp.globalView(DType.Float32, 1, shape.flip([true]), [gidx]);
+      const exe3 = await backend.prepare(
+        new Kernel(2, 3, AluExp.mul(arg1, arg2)),
+      );
+      backend.dispatch(exe3, [a, b], [c]);
+      const buf3 = await backend.read(c);
+      expect(new Float32Array(buf3)).toEqual(new Float32Array([6, 10, 12]));
     } finally {
       backend.decRef(a);
       backend.decRef(b);
@@ -49,9 +67,8 @@ describe.each(backendTypes)("Backend '%s'", (backendType) => {
     const backend = getBackend(backendType);
     const a = backend.malloc(200 * 4);
     try {
-      const gidx = AluExp.special(DType.Int32, "gidx", 200);
       const exe = await backend.prepare(
-        new Kernel(0, 200, AluExp.cast(DType.Float32, gidx)),
+        new Kernel(0, 200, AluExp.cast(DType.Float32, AluVar.gidx)),
       );
       backend.dispatch(exe, [], [a]);
       const buf = await backend.read(a);
@@ -65,9 +82,8 @@ describe.each(backendTypes)("Backend '%s'", (backendType) => {
     const backend = getBackend(backendType);
     const a = backend.malloc(4 * 4);
     try {
-      const gidx = AluExp.special(DType.Int32, "gidx", 4);
       const exe = backend.prepareSync(
-        new Kernel(0, 4, AluExp.cast(DType.Float32, gidx)),
+        new Kernel(0, 4, AluExp.cast(DType.Float32, AluVar.gidx)),
       );
       backend.dispatch(exe, [], [a]);
       const buf = backend.readSync(a);
@@ -113,9 +129,7 @@ describe.each(backendTypes)("Backend '%s'", (backendType) => {
     const output = backend.malloc(3 * 4);
     try {
       const st = ShapeTracker.fromShape([3, 2]);
-      const gidx = AluExp.special(DType.Int32, "gidx", 3);
-      const ridx = AluExp.special(DType.Int32, "ridx", 2);
-      const [index, valid] = st.toAluExp([gidx, ridx]);
+      const [index, valid] = st.toAluExp([AluVar.gidx, AluVar.ridx]);
 
       const exp = AluExp.where(
         valid,
@@ -136,7 +150,7 @@ describe.each(backendTypes)("Backend '%s'", (backendType) => {
         DType.Float32,
         AluOp.Add,
         2,
-        AluExp.add(AluExp.variable(DType.Float32, "acc"), AluExp.f32(1)),
+        AluExp.add(AluVar.acc(DType.Float32), AluExp.f32(1)),
       );
       kernel = new Kernel(1, 3, exp, reduction);
       const exe2 = backend.prepareSync(kernel);

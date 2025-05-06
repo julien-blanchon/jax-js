@@ -30,9 +30,9 @@ npm test
   - [x] Low-level operations
   - [x] Create `class Array {}` wrappers
   - [x] Reduction operations
-- [ ] Kernel tuning
-  - [ ] "Group" optimizations
-  - [ ] "Unroll" optimizations
+- [ ] Kernel tuning (see `tuner.ts`)
+  - [ ] "Unroll" optimizations (multiple values/loop iters per thread, e.g., matmul)
+  - [ ] "Group" optimizations (multiple threads per value, e.g., matvec)
   - [ ] "Upcast" optimizations (i.e., Wasm SIMD)
 - [ ] We figure out the `dispose()` / refcount / linear types stuff
 - [ ] Demos: Navier-Stokes, neural networks, statistics

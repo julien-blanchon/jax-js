@@ -1,3 +1,4 @@
+import { ShapeTracker } from "./shape";
 import { clamp } from "./utils";
 
 export enum DType {
@@ -73,6 +74,14 @@ export class AluExp {
   }
   static globalIndex(dtype: DType, gid: number, bufidx: AluExp): AluExp {
     return new AluExp(AluOp.GlobalIndex, dtype, [bufidx], gid);
+  }
+  static globalView(
+    dtype: DType,
+    gid: number,
+    st: ShapeTracker,
+    indices: AluExp[],
+  ): AluExp {
+    return new AluExp(AluOp.GlobalView, dtype, indices, [gid, st]);
   }
 
   static i32(value: number): AluExp {
@@ -402,6 +411,19 @@ export class AluExp {
         const bufidx = this.src[0].evaluate(context, globals);
         return globals(gid, bufidx);
       }
+      case AluOp.GlobalView: {
+        // Note: Doesn't take into account reductions / ridx.
+        if (!globals) throw new Error("Missing globals function");
+        const gid: number = this.arg[0];
+        const st: ShapeTracker = this.arg[1];
+        const [iexpr, vexpr] = st.toAluExp(this.src);
+        if (vexpr.evaluate(context, globals)) {
+          const bufidx = iexpr.evaluate(context, globals);
+          return globals(gid, bufidx);
+        } else {
+          return 0;
+        }
+      }
       default:
         throw new Error(`Missing implemementation for ${this.op}`);
     }
@@ -433,6 +455,7 @@ export enum AluOp {
   Special = "Special", // arg = [variable, n]
   Variable = "Variable", // arg = variable
   GlobalIndex = "GlobalIndex", // arg = gid; src = [bufidx]
+  GlobalView = "GlobalView", // arg = [gid, ShapeTracker], src = [indices...]
 }
 
 export const AluGroup = {
@@ -449,6 +472,14 @@ export const AluGroup = {
   Compare: new Set([AluOp.Cmplt, AluOp.Cmpne]),
   Variable: new Set([AluOp.Special, AluOp.Variable, AluOp.GlobalIndex]),
   Reduce: new Set([AluOp.Add, AluOp.Mul, AluOp.Min, AluOp.Max]),
+};
+
+/** Common variables that can be substituted in expressions. */
+export const AluVar = {
+  gidx: AluExp.variable(DType.Int32, "gidx"), // global index
+  ridx: AluExp.variable(DType.Int32, "ridx"), // reduction index
+  acc: (dtype: DType) => AluExp.variable(dtype, "acc"), // accumulator
+  idx: AluExp.variable(DType.Int32, "idx"), // virtual "array index"
 };
 
 /**
@@ -510,7 +541,7 @@ export class Reduction {
     /** Size of the reduction axis. */
     readonly size: number,
     /** Follow-up expression defined with the "acc" variable, defaults to identity. */
-    readonly fusion: AluExp = AluExp.variable(dtype, "acc"),
+    readonly fusion: AluExp = AluVar.acc(dtype),
   ) {
     if (!AluGroup.Reduce.has(op)) {
       throw new TypeError(`Unsupported reduction: ${op}`);
@@ -575,4 +606,28 @@ export class Reduction {
     }
     throw new TypeError(`Unsupported reduction: ${this.op} ${this.dtype}`);
   }
+}
+
+/** Expression for accessing `indices` in input array with the given shape. */
+export function accessorGlobal(
+  gid: number,
+  st: ShapeTracker,
+  indices: AluExp[],
+): AluExp {
+  const [index, valid] = st.toAluExp(indices);
+  return AluExp.where(
+    valid,
+    AluExp.globalIndex(DType.Float32, gid, index),
+    AluExp.f32(0),
+  );
+}
+
+/** Expression for accessing `indices` in an array recipe with variable "idx". */
+export function accessorAluExp(
+  exp: AluExp,
+  st: ShapeTracker,
+  indices: AluExp[],
+): AluExp {
+  const [index, valid] = st.toAluExp(indices);
+  return AluExp.where(valid, exp.substitute({ idx: index }), AluExp.f32(0));
 }

@@ -1,5 +1,6 @@
 import { AluExp, AluGroup, AluOp, DType, Kernel } from "../alu";
 import { Backend, BackendType, Executable, Slot, SlotError } from "../backend";
+import { tuneWebgpu } from "../tuner";
 import { DEBUG, findPow2 } from "../utils";
 
 type ShaderDispatch = {
@@ -187,7 +188,10 @@ function pipelineSource(
   device: GPUDevice,
   kernel: Kernel,
 ): { shader: string; grid: [number, number] } {
-  const { exp, nargs } = kernel;
+  const tune = tuneWebgpu(kernel); // TODO: Use this
+  const exp = tune.exp;
+
+  const { nargs } = kernel;
   const args = Array.from({ length: nargs }, (_, i) => `in${i}`);
 
   // binding(0..n-1): input buffers

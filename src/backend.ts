@@ -9,8 +9,7 @@
  * and dispatch happens on the level of each shader. Buffers are untyped.
  */
 
-import { AluExp, DType, Kernel } from "./alu";
-import { ShapeTracker, unravelAlu } from "./shape";
+import { Kernel } from "./alu";
 
 export type BackendType = "cpu" | "webgpu";
 export const backendTypes: BackendType[] = ["cpu", "webgpu"];
@@ -167,31 +166,3 @@ export class SlotError extends Error {
     super(`Used a buffer that is invalid or already freed: ${slot}`);
   }
 }
-
-/** Expression for accessing `offset` in input array with the given shape. */
-export function accessorGlobal(
-  gid: number,
-  st: ShapeTracker,
-  offset: AluExp,
-): AluExp {
-  const [index, valid] = st.toAluExp(unravelAlu(st.shape, offset));
-  return AluExp.where(
-    valid,
-    AluExp.globalIndex(DType.Float32, gid, index),
-    AluExp.f32(0),
-  );
-}
-
-/** Expression for accessing `offset` in an array recipe with variable "idx". */
-export function accessorAluExp(
-  exp: AluExp,
-  st: ShapeTracker,
-  offset: AluExp,
-): AluExp {
-  const [index, valid] = st.toAluExp(unravelAlu(st.shape, offset));
-  return AluExp.where(valid, exp.substitute({ idx: index }), AluExp.f32(0));
-}
-
-export const variables = {
-  idx: AluExp.variable(DType.Int32, "idx"),
-};
