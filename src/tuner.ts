@@ -50,48 +50,35 @@ export interface TuneResult {
 
 /** Tuning step that does not apply any optimization. */
 export function tuneNullopt(kernel: Kernel): TuneResult {
-  const gidxVar = AluExp.special(DType.Int32, "gidx", kernel.size);
-  let ridxVar: AluExp | undefined;
-  if (kernel.reduction) {
-    ridxVar = AluExp.special(DType.Int32, "ridx", kernel.reduction.size);
-  }
-
+  const vars: Record<string, AluExp> = {};
+  vars.gidx = AluExp.special(DType.Int32, "gidx", kernel.size);
+  if (kernel.reduction)
+    vars.ridx = AluExp.special(DType.Int32, "ridx", kernel.reduction.size);
   return {
-    exp: lowerExp(kernel.exp, gidxVar, ridxVar).simplify(),
+    exp: lowerExp(kernel.exp).substitute(vars).simplify(),
   };
 }
 
 /** Tuning for WebGPU kernels. */
 export function tuneWebgpu(kernel: Kernel): TuneResult {
+  if (!kernel.reduction) return tuneNullopt(kernel);
   // TODO: Implement WebGPU tuning.
+
+  // 1. Check that kernel GlobalView ops have consistent src[], where the last
+  //    dimension is reduction, and others are gidx.
+  // 2. Collect all shape trackers for kernel GlobalView ops.
+  // 3. Apply heuristic optimizations based on the shape trackers.
+  // 4. Return the tuned kernel result.
+
   return tuneNullopt(kernel);
 }
 
-function lowerExp(exp: AluExp, gidxVar: AluExp, ridxVar?: AluExp): AluExp {
-  let newSrc = exp.src.map((e) => lowerExp(e, gidxVar, ridxVar));
-  if (
-    newSrc.length === exp.src.length &&
-    newSrc.every((s, i) => s === exp.src[i])
-  ) {
-    newSrc = exp.src; // No changes, so reuse the original.
-  }
-
-  if (exp.op === AluOp.GlobalView) {
-    const gid: number = exp.arg[0];
-    const st: ShapeTracker = exp.arg[1];
-    return accessorGlobal(gid, st, newSrc);
-  } else if (exp.op === AluOp.Variable) {
-    if (exp.arg === "gidx") {
-      return gidxVar;
-    } else if (exp.arg === "ridx") {
-      if (ridxVar) return ridxVar;
-      else throw new Error("ridx variable not provided");
+function lowerExp(exp: AluExp): AluExp {
+  return exp.rewrite((exp) => {
+    if (exp.op === AluOp.GlobalView) {
+      const gid: number = exp.arg[0];
+      const st: ShapeTracker = exp.arg[1];
+      return accessorGlobal(gid, st, exp.src);
     }
-    return exp;
-  }
-
-  if (newSrc !== exp.src) {
-    return new AluExp(exp.op, exp.dtype, newSrc, exp.arg);
-  }
-  return exp;
+  });
 }

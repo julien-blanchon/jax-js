@@ -428,6 +428,21 @@ export class AluExp {
         throw new Error(`Missing implemementation for ${this.op}`);
     }
   }
+
+  /** Rewrite the expression recursively using a visitor. */
+  rewrite(visitor: (exp: AluExp) => AluExp | undefined | null): AluExp {
+    const newSrc = this.src.map((x) => x.rewrite(visitor));
+    if (
+      newSrc.length === this.src.length &&
+      newSrc.every((s, i) => s === this.src[i])
+    ) {
+      return visitor(this) ?? this;
+    } else {
+      // If the source changed, we need to create a new expression.
+      const newExp = new AluExp(this.op, this.dtype, newSrc, this.arg);
+      return visitor(newExp) ?? newExp;
+    }
+  }
 }
 
 /** Symbolic form for each mathematical operation. */
