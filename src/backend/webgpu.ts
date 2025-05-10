@@ -190,13 +190,13 @@ function pipelineSource(
 ): { shader: string; grid: [number, number] } {
   const tune = tuneWebgpu(kernel);
 
-  if (tune.groups ?? 1 > 1) {
+  if (tune.size.groups ?? 1 > 1) {
     throw new Error("WebGPU backend does not support group optimization yet");
   }
-  if (tune.unroll ?? 1 > 1) {
+  if (tune.size.unroll ?? 1 > 1) {
     throw new Error("WebGPU backend does not support unrolling yet");
   }
-  if (tune.upcast ?? 1 > 1) {
+  if (tune.size.upcast ?? 1 > 1) {
     throw new Error("WebGPU backend does not support upcasting yet");
   }
 
@@ -247,7 +247,7 @@ function pipelineSource(
   const gensym = () => `alu${gensymCount++}`;
 
   const usedArgs = Array.from({ length: nargs }, () => false);
-  kernel.exp.fold((exp) => {
+  tune.exp.fold((exp) => {
     if (exp.op === AluOp.GlobalIndex) usedArgs[exp.arg] = true;
   });
 
@@ -327,7 +327,7 @@ function pipelineSource(
     const re = kernel.reduction;
     emit(
       `var acc: ${dtypeToWgsl(re.dtype)} = ${constToWgsl(re.dtype, re.identity)};`,
-      `for (var ridx: i32 = 0; ridx < ${tune.reduce}; ridx++) {`,
+      `for (var ridx: i32 = 0; ridx < ${tune.size.reduce}; ridx++) {`,
       pushIndent,
     );
     const item = gen(tune.exp);

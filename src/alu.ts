@@ -96,6 +96,13 @@ export class AluExp {
     return AluExp.const(DType.Bool, value);
   }
 
+  not(): AluExp {
+    if (this.dtype !== DType.Bool) {
+      throw new Error("not() can only be called on boolean expressions");
+    }
+    return AluExp.cmpne(this, AluExp.const(DType.Bool, true));
+  }
+
   /** Compute a reasonable expression hash with low collision rate. */
   getHash(): bigint {
     if (this.#hash !== undefined) return this.#hash;
@@ -107,13 +114,6 @@ export class AluExp {
     }
     this.#hash = hasher.value;
     return this.#hash;
-  }
-
-  not(): AluExp {
-    if (this.dtype !== DType.Bool) {
-      throw new Error("not() can only be called on boolean expressions");
-    }
-    return AluExp.cmpne(this, AluExp.const(DType.Bool, true));
   }
 
   /** Substitute variables in this AluExp to values. */
@@ -203,8 +203,16 @@ export class AluExp {
         ret = [Math.cos(src[0].min), Math.cos(src[0].max)];
         break;
       case AluOp.Cast:
-        // Casts don't change the range, but they do change the dtype.
-        ret = [src[0].min, src[0].max];
+        // Casts change the dtype.
+        if (this.dtype === DType.Bool) {
+          const canBeZero = src[0].min <= 0 && src[0].max >= 0;
+          const mustBeZero = src[0].min === 0 && src[0].max === 0;
+          ret = mustBeZero ? [0, 0] : canBeZero ? [0, 1] : [1, 1];
+        } else if (this.dtype === DType.Int32) {
+          ret = [Math.trunc(src[0].min), Math.trunc(src[0].max)];
+        } else {
+          ret = [src[0].min, src[0].max];
+        }
         break;
 
       case AluOp.Cmplt:
@@ -407,8 +415,8 @@ export class AluExp {
 
     // Select statement.
     if (op === AluOp.Where) {
-      if (src[0].min <= 0) return src[2];
-      if (src[0].max >= 1) return src[1];
+      if (src[0].max === 0) return src[2];
+      if (src[0].min === 1) return src[1];
     }
 
     // If any src was simplified, should construct a new expression.
@@ -518,6 +526,68 @@ export class AluExp {
       default:
         throw new Error(`Missing implemementation for ${this.op}`);
     }
+  }
+
+  /** Get this expression in debug format as a string. */
+  toString(): string {
+    const BIN_SYM: Partial<Record<AluOp, string>> = {
+      [AluOp.Add]: "+",
+      [AluOp.Sub]: "-",
+      [AluOp.Mul]: "*",
+      [AluOp.Idiv]: "/",
+      [AluOp.Mod]: "%",
+    };
+    const CMP_SYM: Partial<Record<AluOp, string>> = {
+      [AluOp.Cmplt]: "<",
+      [AluOp.Cmpne]: "!=",
+    };
+    const UNARY_SYM: Partial<Record<AluOp, string>> = {
+      [AluOp.Sin]: "sin",
+      [AluOp.Cos]: "cos",
+    };
+
+    return this.fold<string>((node, parts) => {
+      switch (node.op) {
+        case AluOp.Const:
+          return "" + node.arg;
+
+        case AluOp.Variable:
+          return `$${node.arg}:${node.dtype}`;
+
+        case AluOp.Special: {
+          const [name, n] = node.arg as [string, number];
+          return `#${name}{${n}}`;
+        }
+
+        case AluOp.GlobalIndex:
+          return `G_${node.arg}<${node.dtype}>[${parts[0]}]`;
+
+        case AluOp.GlobalView: {
+          const [gid, st] = node.arg as [number, ShapeTracker];
+          const shape = st.shape.join(",");
+          const cont = st.contiguous ? "c" : "nc";
+          return `GV_${gid}<${node.dtype}>{${shape}${cont ? "" : "*"}}[${parts.join(", ")}]`;
+        }
+      }
+
+      /* binary ops with pretty symbols ­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­ */
+      if (BIN_SYM[node.op]) {
+        return `(${parts[0]} ${BIN_SYM[node.op]!} ${parts[1]})`;
+      }
+      if (CMP_SYM[node.op]) {
+        return `(${parts[0]} ${CMP_SYM[node.op]!} ${parts[1]})`;
+      }
+
+      /* unary ops with pretty names ­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­­ */
+      if (UNARY_SYM[node.op]) {
+        return `${UNARY_SYM[node.op]!}(${parts[0]})`;
+      }
+      if (node.op === AluOp.Cast) {
+        return `Cast<${node.dtype}>(${parts[0]})`;
+      }
+
+      return `${node.op}(${parts.join(", ")})`;
+    });
   }
 
   /** Generic fold() operation with a reducer over the expression tree. */

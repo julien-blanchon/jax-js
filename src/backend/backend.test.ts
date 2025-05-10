@@ -10,7 +10,7 @@ import {
   Reduction,
 } from "../alu";
 import { backendTypes, getBackend, init } from "../backend";
-import { ShapeTracker } from "../shape";
+import { ShapeTracker, unravelAlu } from "../shape";
 import { range } from "../utils";
 
 const backendsAvailable = await init(...backendTypes);
@@ -129,13 +129,10 @@ describe.each(backendTypes)("Backend '%s'", (backendType) => {
     const output = backend.malloc(3 * 4);
     try {
       const st = ShapeTracker.fromShape([3, 2]);
-      const [index, valid] = st.toAluExp([AluVar.gidx, AluVar.ridx]);
-
-      const exp = AluExp.where(
-        valid,
-        AluExp.globalIndex(DType.Float32, 0, index),
-        AluExp.f32(0),
-      ); // accessor where columns are reduced
+      const exp = AluExp.globalView(DType.Float32, 0, st, [
+        AluVar.gidx,
+        AluVar.ridx,
+      ]);
       let reduction = new Reduction(DType.Float32, AluOp.Add, 2);
       let kernel = new Kernel(1, 3, exp, reduction);
 
@@ -161,6 +158,42 @@ describe.each(backendTypes)("Backend '%s'", (backendType) => {
     } finally {
       backend.decRef(a);
       backend.decRef(output);
+    }
+  });
+
+  test("performs 64x64 matmul", async () => {
+    const backend = getBackend(backendType);
+
+    // This shouold trigger an optimization via Upcast/Unroll.
+    const n = 64;
+    const array = new Float32Array(n * n);
+    for (let i = 0; i < array.length; ++i) array[i] = 1.0;
+
+    const a = backend.malloc(n * n * 4, array.buffer);
+    const b = backend.malloc(n * n * 4);
+    try {
+      // Calculate a^2, which should be all n.0 values.
+      const st = ShapeTracker.fromShape([n, n]);
+      const st1 = st.reshape([n, 1, n]).expand([n, n, n]);
+      const st2 = st.permute([1, 0]).reshape([1, n, n]).expand([n, n, n]);
+      const indices = [...unravelAlu([n, n], AluVar.gidx), AluVar.ridx];
+      const exp = AluExp.mul(
+        AluExp.globalView(DType.Float32, 0, st1, indices),
+        AluExp.globalView(DType.Float32, 0, st2, indices),
+      );
+      const reduction = new Reduction(DType.Float32, AluOp.Add, n);
+      const kernel = new Kernel(1, n * n, exp, reduction);
+
+      const exe = await backend.prepare(kernel);
+      backend.dispatch(exe, [a], [b]);
+
+      const buf = await backend.read(b);
+      const expected = new Float32Array(n * n);
+      for (let i = 0; i < expected.length; ++i) expected[i] = n;
+      expect(new Float32Array(buf)).toEqual(expected);
+    } finally {
+      backend.decRef(a);
+      backend.decRef(b);
     }
   });
 });

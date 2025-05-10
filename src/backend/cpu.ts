@@ -1,5 +1,6 @@
 import { Kernel } from "../alu";
 import { Backend, BackendType, Executable, Slot, SlotError } from "../backend";
+import { tuneNullopt } from "../tuner";
 
 /** Most basic implementation of `Backend` for testing. */
 export class CPUBackend implements Backend {
@@ -66,7 +67,7 @@ export class CPUBackend implements Backend {
     inputs: Slot[],
     outputs: Slot[],
   ): void {
-    const exp = kernel.exp.simplify();
+    const { exp } = tuneNullopt(kernel);
     const inputBuffers = inputs.map((slot) => this.#getBuffer(slot));
     const outputBuffers = outputs.map((slot) => this.#getBuffer(slot));
 

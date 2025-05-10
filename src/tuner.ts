@@ -33,20 +33,23 @@ export interface TuneResult {
   /** Expression for indexing the result array, if upcasting. */
   outputIdxExp?: AluExp;
 
-  /**
-   * Number of threads in a group.
-   * If greater than 1, group index is available as `AluExp.special("group")`.
-   */
-  groups?: number;
+  /** Sizes of various dimensions of the kernel. */
+  size: {
+    /**
+     * Number of threads in a group.
+     * If greater than 1, group index is available as `AluExp.special("group")`.
+     */
+    groups?: number;
 
-  /** Number of iterations for the reduction loop, `AluExp.special("ridx")`. */
-  reduce: number;
+    /** Number of iterations for the reduce loop, `AluExp.special("ridx")`. */
+    reduce: number;
 
-  /** Amount to upcast in reduction, set via `AluVar.unroll`. */
-  unroll?: number;
+    /** Amount to upcast in reduce loop, set via `AluVar.unroll`. */
+    unroll?: number;
 
-  /** Amount to upcast in non-reduce dimensions, set via `AluVar.upcast`. */
-  upcast?: number;
+    /** Amount to upcast in non-reduce dimensions, set via `AluVar.upcast`. */
+    upcast?: number;
+  };
 }
 
 /** Stores dimensions of the kernel's applied shape. Globals start at 0. */
@@ -153,7 +156,9 @@ export function tuneNullopt(kernel: Kernel): TuneResult {
       })
       .substitute(vars)
       .simplify(),
-    reduce: kernel.reduction ? kernel.reduction.size : 0,
+    size: {
+      reduce: kernel.reduction ? kernel.reduction.size : 0,
+    },
   };
 }
 
@@ -173,7 +178,7 @@ export function tuneWebgpu(kernel: Kernel): TuneResult {
   const expectedSrc = [
     ...unravelAlu(shape.slice(0, -1), AluVar.gidx),
     AluVar.ridx,
-  ];
+  ].map((e) => e.simplify());
   for (const gv of globalViews) {
     if (!gv.src.length || !deepEqual(gv.src, expectedSrc)) {
       if (DEBUG >= 4)
@@ -250,11 +255,11 @@ export function tuneWebgpu(kernel: Kernel): TuneResult {
     addIndices(s, AluExp.special(DType.Int32, "ridx", prod(s)));
   }
   if (dim.unroll < dim.upcast) {
-    const s = dim.st.shape.slice(dim.reduce, dim.unroll);
+    const s = dim.st.shape.slice(dim.unroll, dim.upcast);
     addIndices(s, AluVar.unroll);
   }
   if (dim.upcast < dim.st.shape.length - 1) {
-    const s = dim.st.shape.slice(dim.unroll, dim.upcast);
+    const s = dim.st.shape.slice(dim.upcast);
     addIndices(s, AluVar.upcast);
   }
 
@@ -285,11 +290,13 @@ export function tuneWebgpu(kernel: Kernel): TuneResult {
   }
 
   return {
-    exp: newExp,
+    exp: newExp.simplify(),
     outputIdxExp,
-    groups: prod(dim.st.shape.slice(dim.groups, dim.reduce)),
-    reduce: prod(dim.st.shape.slice(dim.reduce, dim.unroll)),
-    unroll: prod(dim.st.shape.slice(dim.unroll, dim.upcast)),
-    upcast: prod(dim.st.shape.slice(dim.upcast)),
+    size: {
+      groups: prod(dim.st.shape.slice(dim.groups, dim.reduce)),
+      reduce: prod(dim.st.shape.slice(dim.reduce, dim.unroll)),
+      unroll: prod(dim.st.shape.slice(dim.unroll, dim.upcast)),
+      upcast: prod(dim.st.shape.slice(dim.upcast)),
+    },
   };
 }
