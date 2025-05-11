@@ -11,6 +11,23 @@ export const int32 = DType.Int32;
 export const bool = DType.Bool;
 export const complex64 = DType.Complex64;
 
+// Constants section
+
+/** Euler's constant, `e = 2.7182818284590...` */
+export const e = Math.E;
+
+/** Euler-Mascheroni constant, `γ = 0.5772156649... */
+export const eulerGamma = 0.5772156649015329;
+
+/** Positive infinity. */
+export const inf = Number.POSITIVE_INFINITY;
+
+/** Floating-point representation of NaN. */
+export const nan = Number.NaN;
+
+/** This is Pi, `π = 3.14159265358979...` */
+export const pi = Math.PI;
+
 // Note: These primitive wrappers have fudged types.
 //
 // They can take any `TracerValue` and return any `Tracer` subclass based on the
