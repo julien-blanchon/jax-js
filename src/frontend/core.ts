@@ -187,6 +187,19 @@ export abstract class Tracer {
   transpose(perm?: number[]): this {
     return transpose(this, perm) as this;
   }
+
+  // Below this line are composite operations built from primitives.
+
+  /** Return specified diagonals. See `numpy.diagonal` for full docs. */
+  diagonal(offset = 0, axis1 = 0, axis2 = 1): this {
+    if (!Number.isInteger(offset))
+      throw new TypeError(`offset must be an integer, got ${offset}`);
+    if (axis1 === axis2)
+      throw new TypeError("axis1 and axis2 must not be equal");
+    // TODO: This is possible on the forward pass, but we need a custom JVP
+    // rule, so build it out of other primitives later.
+    throw new Error("diagonal not implemented");
+  }
 }
 
 export function ndim(x: TracerValue) {
