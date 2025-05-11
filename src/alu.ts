@@ -222,7 +222,10 @@ export class AluExp {
         ret = [0, 1];
         break;
       case AluOp.Where:
-        ret = [0, 1];
+        ret = [
+          Math.min(src[1].min, src[2].min),
+          Math.max(src[1].max, src[2].max),
+        ];
         break;
 
       case AluOp.Const:
@@ -646,7 +649,7 @@ export enum AluOp {
 
   Cmplt = "Cmplt",
   Cmpne = "Cmpne",
-  Where = "Where",
+  Where = "Where", // Ternary operator: `cond ? a : b`
 
   // Const is a literal constant, while GlobalIndex takes data from an array
   // buffer. Special and Variable are distinguished since the former is for
