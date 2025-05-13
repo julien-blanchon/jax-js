@@ -45,37 +45,58 @@ export const pi = Math.PI;
 
 export type ArrayLike = Array | number | boolean;
 
+/** Element-wise addition, with broadcasting. */
 export const add = core.add as (x: ArrayLike, y: ArrayLike) => Array;
+/** Element-wise multiplication, with broadcasting. */
 export const mul = core.mul as (x: ArrayLike, y: ArrayLike) => Array;
+/** Negate every element of an array. */
 export const neg = core.neg as (x: ArrayLike) => Array;
+/** Element-wise sine function (takes radians). */
 export const sin = core.sin as (x: ArrayLike) => Array;
+/** Element-wise cosine function (takes radians). */
 export const cos = core.cos as (x: ArrayLike) => Array;
+/** Compare two arrays element-wise. */
 export const greater = core.greater as (x: ArrayLike, y: ArrayLike) => Array;
+/** Compare two arrays element-wise. */
 export const less = core.less as (x: ArrayLike, y: ArrayLike) => Array;
+/** Compare two arrays element-wise. */
 export const equal = core.equal as (x: ArrayLike, y: ArrayLike) => Array;
+/** Compare two arrays element-wise. */
 export const notEqual = core.notEqual as (x: ArrayLike, y: ArrayLike) => Array;
+/** Compare two arrays element-wise. */
 export const greaterEqual = core.greaterEqual as (
   x: ArrayLike,
   y: ArrayLike,
 ) => Array;
+/** Compare two arrays element-wise. */
 export const lessEqual = core.lessEqual as (
   x: ArrayLike,
   y: ArrayLike,
 ) => Array;
+/** Element-wise ternary operator, evaluates to `x` if cond else `y`. */
 export const where = core.where as (
   cond: ArrayLike,
   x: ArrayLike,
   y: ArrayLike,
 ) => Array;
+/** Permute the dimensions of an array. Defaults to reversing the axis order. */
 export const transpose = core.transpose as (
   x: ArrayLike,
   perm?: number[],
 ) => Array;
+/** Repeat an array, adding new dimensions at the specified axes. */
 export const broadcast = core.broadcast as (
   x: ArrayLike,
   shape: number[],
   axis: number[],
 ) => Array;
+/**
+ * Give a new shape to an array without changing its data.
+ *
+ * One shape dimension can be -1. In this case, the value is inferred from the
+ * length of the array and remaining dimensions.
+ */
+export const reshape = core.reshape as (x: ArrayLike, shape: number[]) => Array;
 export const sum = core.reduceSum as (
   x: ArrayLike,
   axis?: number | number[],
@@ -91,11 +112,6 @@ export const permuteDims = transpose;
 
 // Version of pureArray with fudged types.
 const fudgeArray = pureArray as (x: ArrayLike) => Array;
-
-/** Return the shape of an array. */
-export function shape(a: ArrayLike): number[] {
-  return a instanceof core.Tracer ? a.shape : [];
-}
 
 /** Return the number of elements in an array, optionally along an axis. */
 export function size(a: ArrayLike, axis?: number): number {
@@ -151,8 +167,11 @@ export function diag(v: ArrayLike, k = 0): Array {
   }
 }
 
-/** Compute the number of dimensions of an array. */
+/** Return the number of dimensions of an array. */
 export const ndim = core.ndim as (x: ArrayLike) => number;
+
+/** Return the shape of an array. */
+export const shape = core.getShape as (x: ArrayLike) => number[];
 
 /** Return if two arrays are element-wise equal within a tolerance. */
 export function allclose(

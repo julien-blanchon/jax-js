@@ -1,7 +1,7 @@
 import { DType } from "../alu";
 import { PPrint } from "../pprint";
 import { JsTreeDef, flatten as treeFlatten } from "../tree";
-import { range, unzip2, zip } from "../utils";
+import { unzip2, zip } from "../utils";
 import { Array, generalBroadcast, pureArray } from "./array";
 import {
   bind,
@@ -498,10 +498,7 @@ export const abstractEvalRules: Record<Primitive, AbstractEvalRule> = {
     );
     return [new ShapedArray(shape, x.dtype)];
   },
-  [Primitive.Transpose]([x], { perm }: { perm?: number[] }) {
-    if (perm === undefined) {
-      perm = range(x.shape.length).reverse();
-    }
+  [Primitive.Transpose]([x], { perm }: { perm: number[] }) {
     return [
       new ShapedArray(
         perm.map((i) => x.shape[i]),
@@ -510,6 +507,9 @@ export const abstractEvalRules: Record<Primitive, AbstractEvalRule> = {
     ];
   },
   [Primitive.Broadcast]([x], { shape }: { shape: number[]; axis: number[] }) {
+    return [new ShapedArray(shape, x.dtype)];
+  },
+  [Primitive.Reshape]([x], { shape }: { shape: number[] }) {
     return [new ShapedArray(shape, x.dtype)];
   },
 };

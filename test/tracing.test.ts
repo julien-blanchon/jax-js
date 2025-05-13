@@ -39,7 +39,7 @@ suite("jax.makeJaxpr()", () => {
 
   test("composes with jvp", () => {
     const f = (x: np.Array) => np.mul(x.add(2), x);
-    const fdot = (x: np.Array) => jvp(f, [x], [np.array(1)])[1];
+    const fdot = (x: np.Array) => jvp(f, [x], [1])[1];
 
     const { jaxpr, consts } = makeJaxpr(fdot)(np.array(2));
     expect(jaxpr.toString()).toMatchInlineSnapshot(`

@@ -6,7 +6,7 @@ import {
   flatten as treeFlatten,
   unflatten as treeUnflatten,
 } from "../tree";
-import { DEBUG, range } from "../utils";
+import { DEBUG, prod, range } from "../utils";
 
 export enum Primitive {
   Add = "add",
@@ -19,6 +19,7 @@ export enum Primitive {
   Where = "where",
   Transpose = "transpose",
   Broadcast = "broadcast",
+  Reshape = "reshape",
 }
 
 export enum CompareOp {
@@ -77,11 +78,33 @@ export function where(cond: TracerValue, x: TracerValue, y: TracerValue) {
 }
 
 export function transpose(x: TracerValue, perm?: number[]) {
+  perm = perm ?? range(ndim(x)).reverse();
   return bind1(Primitive.Transpose, [x], { perm });
 }
 
 export function broadcast(x: TracerValue, shape: number[], axis: number[]) {
   return bind1(Primitive.Broadcast, [x], { shape, axis });
+}
+
+export function reshape(x: TracerValue, shape: number | number[]) {
+  if (typeof shape === "number") shape = [shape];
+  const originalShape = getShape(x);
+  const autoIdx = shape.indexOf(-1);
+  if (autoIdx !== -1) {
+    const remaining = prod(originalShape) / -prod(shape);
+    if (!Number.isInteger(remaining) || remaining < 0) {
+      throw new TypeError(
+        `Invalid reshape: ${JSON.stringify(originalShape)} -> ${JSON.stringify(shape)}`,
+      );
+    }
+    shape = shape.toSpliced(autoIdx, 1, remaining);
+  }
+  if (prod(originalShape) !== prod(shape)) {
+    throw new TypeError(
+      `Invalid reshape: ${JSON.stringify(originalShape)} -> ${JSON.stringify(shape)}`,
+    );
+  }
+  return bind1(Primitive.Reshape, [x], { shape });
 }
 
 export function reduceSum(x: TracerValue, axis?: number | number[]) {
@@ -197,6 +220,7 @@ export abstract class Tracer {
   // These types aren't technically correct since they don't account for the
   // fact that tracers can be lifted to different levels. But they simplify the
   // API visible to users.
+
   neg() {
     return neg(this) as this;
   }
@@ -230,6 +254,9 @@ export abstract class Tracer {
   transpose(perm?: number[]): this {
     return transpose(this, perm) as this;
   }
+  reshape(shape: number | number[]): this {
+    return reshape(this, shape) as this;
+  }
 
   // Below this line are composite operations built from primitives.
 
@@ -243,6 +270,15 @@ export abstract class Tracer {
     // rule, so build it out of other primitives later.
     throw new Error("diagonal not implemented");
   }
+
+  /** Flatten the array without changing its data. */
+  flatten(): this {
+    return this.reshape(-1);
+  }
+  /** Flatten the array without changing its data. */
+  ravel(): this {
+    return this.reshape(-1);
+  }
 }
 
 export function ndim(x: TracerValue) {
@@ -251,6 +287,10 @@ export function ndim(x: TracerValue) {
   } else {
     return 0;
   }
+}
+
+export function getShape(x: TracerValue): number[] {
+  return x instanceof Tracer ? x.shape : [];
 }
 
 // Note: Autodidax has a `ConcreteArray` type with "arrayAbstractionLevel" set
@@ -306,7 +346,9 @@ export function bind(
   const tracers = args.map((arg) => fullRaise(topTrace, arg));
   const outs = topTrace.processPrimitive(prim, tracers, params);
   if (DEBUG >= 5) {
-    console.info(`processing rule for ${prim} on ${tracers} and got ${outs}`);
+    console.info(
+      `processing rule for ${prim} on ${tracers.map((x) => x.toString())} and got ${outs.map((x) => x.toString())}`,
+    );
   }
   return outs.map((out) => out.fullLower());
 }

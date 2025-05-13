@@ -159,31 +159,6 @@ export class Array extends Tracer {
     );
   }
 
-  // TODO: reshape() should exist on the Tracer level, not the Array level.
-  reshape(shape: number[]): Array {
-    const autoIdx = shape.indexOf(-1);
-    if (autoIdx !== -1) {
-      const remaining = this.#st.size / -prod(shape);
-      if (remaining % 1 !== 0 || remaining < 0) {
-        throw new Error(
-          `Invalid reshape: ${JSON.stringify(this.shape)} -> ${JSON.stringify(shape)}`,
-        );
-      }
-      shape = shape.toSpliced(autoIdx, 1, remaining);
-    }
-    if (deepEqual(shape, this.shape)) {
-      return this;
-    }
-    return this.#reshape(this.#st.reshape(shape));
-  }
-
-  flatten(): Array {
-    return this.reshape([-1]);
-  }
-  ravel(): Array {
-    return this.reshape([-1]);
-  }
-
   /** Move axes to the rightmost dimension of the shape. */
   #moveAxesDown(axis: number[]): Array {
     if (axis.length === 0) return this.reshape(this.shape.concat(1));
@@ -202,13 +177,9 @@ export class Array extends Tracer {
     return this.#transpose(keptAxes.concat(shiftedAxes)).reshape(newShape);
   }
 
-  #transpose(perm?: number[]): Array {
-    if (perm) {
-      if (!isPermutation(perm, this.ndim))
-        throw new Error(`Invalid perm for transpose: ${JSON.stringify(perm)}`);
-    } else if (!perm) {
-      perm = this.shape.map((_, i) => i).reverse();
-    }
+  #transpose(perm: number[]): Array {
+    if (!isPermutation(perm, this.ndim))
+      throw new Error(`Invalid perm for transpose: ${JSON.stringify(perm)}`);
     return this.#reshape(this.#st.permute(perm));
   }
 
@@ -504,7 +475,7 @@ export class Array extends Tracer {
         const custom = ([cond, x, y]: AluExp[]) => AluExp.where(cond, x, y);
         return [Array.#naryCustom("where", custom, [cond, x, y], [DType.Bool])];
       },
-      [Primitive.Transpose]([x], { perm }: { perm?: number[] }) {
+      [Primitive.Transpose]([x], { perm }: { perm: number[] }) {
         return [x.#transpose(perm)];
       },
       [Primitive.Broadcast](
@@ -522,6 +493,9 @@ export class Array extends Tracer {
         }
         // Then, expand the data to the new shape.
         return [x.#reshape(st.expand(shape))];
+      },
+      [Primitive.Reshape]([x], { shape }: { shape: number[] }) {
+        return [x.#reshape(x.#st.reshape(shape))];
       },
     };
   }

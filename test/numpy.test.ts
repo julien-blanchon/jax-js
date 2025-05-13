@@ -171,4 +171,35 @@ suite.each(backendTypes)("backend:%s", (backend) => {
       expect(np.matrixTranspose(x).shape).toEqual([5, 7, 60]);
     });
   });
+
+  suite("jax.numpy.reshape()", () => {
+    test("reshapes a 1D array", () => {
+      const x = np.array([1, 2, 3, 4]);
+      const y = np.reshape(x, [2, -1]);
+      expect(y.js()).toEqual([
+        [1, 2],
+        [3, 4],
+      ]);
+    });
+
+    test("raises TypeError on incompatible shapes", () => {
+      const x = np.array([1, 2, 3, 4]);
+      expect(() => np.reshape(x, [3, 2])).toThrow(TypeError);
+      expect(() => np.reshape(x, [2, 3])).toThrow(TypeError);
+      expect(() => np.reshape(x, [2, 2, 2])).toThrow(TypeError);
+      expect(() => np.reshape(x, [3, -1])).toThrow(TypeError);
+      expect(() => np.reshape(x, [-1, -1])).toThrow(TypeError);
+    });
+
+    test("composes with jvp", () => {
+      const x = np.array([1, 2, 3, 4]);
+      const [y, dy] = jvp(
+        (x: np.Array) => np.reshape(x, [2, 2]).sum(),
+        [x],
+        [np.ones([4])],
+      );
+      expect(y).toBeAllclose(10);
+      expect(dy).toBeAllclose(4);
+    });
+  });
 });

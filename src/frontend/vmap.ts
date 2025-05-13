@@ -77,7 +77,7 @@ class BatchTracer extends Tracer {
   }
 
   toString(): string {
-    return `BatchTracer(${this.val}, ${this.batchDim})`;
+    return `BatchTracer(${this.val.toString()}, ${this.batchDim})`;
   }
 
   fullLower(): Tracer {
@@ -212,7 +212,7 @@ const vmapRules: Partial<Record<Primitive, VmapRule>> = {
   [Primitive.Compare](axisSize, args, dims, { op }: { op: CompareOp }) {
     return broadcastBatcher((x, y) => compare(x, y, op))(axisSize, args, dims);
   },
-  // TODO: where, transpose, broadcast
+  // TODO: where, transpose, broadcast, reshape
 };
 
 function vmapFlat(

@@ -2,7 +2,7 @@
 
 import { DType } from "../alu";
 import { flatten as treeFlatten, unflatten as treeUnflatten } from "../tree";
-import { invertPermutation, range, toposort, unzip2 } from "../utils";
+import { invertPermutation, toposort, unzip2 } from "../utils";
 import { pureArray, zeros } from "./array";
 import {
   AbstractValue,
@@ -17,6 +17,7 @@ import {
   newMain,
   Primitive,
   reduceSum,
+  reshape,
   ShapedArray,
   Trace,
   Tracer,
@@ -190,9 +191,9 @@ class PartialEvalTracer extends Tracer {
 
   toString(): string {
     if (!this.recipe) {
-      return `PartialEvalTracer(${this.pval})`;
+      return `PartialEvalTracer(${this.pval.toString()})`;
     } else {
-      return `PartialEvalTracer<${this.recipe.type}>(${this.pval})`;
+      return `PartialEvalTracer<${this.recipe.type}>(${this.pval.toString()})`;
     }
   }
 }
@@ -462,16 +463,20 @@ const transposeRules: Partial<Record<Primitive, TransposeRule>> = {
     }
     return cts;
   },
-  [Primitive.Transpose]([ct], [x], { perm }: { perm?: number[] }) {
+  [Primitive.Transpose]([ct], [x], { perm }: { perm: number[] }) {
     if (!(x instanceof UndefPrimal))
       throw new NonlinearError(Primitive.Transpose);
-    const tperm = perm ? invertPermutation(perm) : range(x.aval.ndim).reverse();
-    return [transpose(ct, tperm)];
+    return [transpose(ct, invertPermutation(perm))];
   },
   [Primitive.Broadcast]([ct], [x], { axis }: { axis: number[] }) {
     if (!(x instanceof UndefPrimal))
       throw new NonlinearError(Primitive.Broadcast);
     return [reduceSum(ct, axis)];
+  },
+  [Primitive.Reshape]([ct], [x], _: { shape: number[] }) {
+    if (!(x instanceof UndefPrimal))
+      throw new NonlinearError(Primitive.Reshape);
+    return [reshape(ct, x.aval.shape)];
   },
 };
 
