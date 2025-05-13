@@ -74,7 +74,7 @@ type JvpRule = (
   params: any,
 ) => [Tracer[], Tracer[]];
 
-const jvpRules: Partial<Record<Primitive, JvpRule>> = {
+const jvpRules: Record<Primitive, JvpRule> = {
   [Primitive.Add]([x, y], [dx, dy]) {
     return [[x.add(y)], [dx.add(dy)]];
   },

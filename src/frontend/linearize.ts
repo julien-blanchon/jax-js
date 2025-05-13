@@ -451,7 +451,7 @@ const transposeRules: Partial<Record<Primitive, TransposeRule>> = {
   },
   // BUG: Doesn't handle broadcasting.
   [Primitive.Where]([ct], [cond, x, y]) {
-    // Cotangent should be zero be zero where cond doesn't apply.
+    // Cotangent should be zero where cond doesn't apply.
     const cts: (Tracer | null)[] = [null, null, null];
     if (cond instanceof UndefPrimal) throw new NonlinearError(Primitive.Where);
     if (x instanceof UndefPrimal) {
