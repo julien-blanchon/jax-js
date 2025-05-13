@@ -4,6 +4,7 @@ import {
   Array,
   eye,
   full,
+  identity,
   ones,
   pureArray,
   scalar,
@@ -13,7 +14,7 @@ import * as core from "./frontend/core";
 import * as vmapModule from "./frontend/vmap";
 import { deepEqual, prod, range } from "./utils";
 
-export { Array, array, DType, eye, scalar, zeros, ones, full };
+export { Array, array, DType, eye, identity, scalar, zeros, ones, full };
 
 export const float32 = DType.Float32;
 export const int32 = DType.Int32;

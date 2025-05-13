@@ -747,6 +747,14 @@ export function eye(
   );
 }
 
+/** Return the identity array, with ones on the main diagonal. */
+export function identity(
+  n: number,
+  { dtype, backend }: DTypeAndBackend = {},
+): Array {
+  return eye(n, n, { dtype, backend });
+}
+
 /**
  * Implements a NumPy-style generalized broadcast rule on two array shapes.
  *
