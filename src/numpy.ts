@@ -86,6 +86,9 @@ export const moveaxis = vmapModule.moveaxis as (
   dst: number,
 ) => Array;
 
+// Alternate or equivalent names for functions, from numpy.
+export const permuteDims = transpose;
+
 // Version of pureArray with fudged types.
 const fudgeArray = pureArray as (x: ArrayLike) => Array;
 
