@@ -17,7 +17,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Build @jax-js/core
+      - name: Build @jax-js/jax
         run: npm ci && npm run build
 
       - run: npm ci

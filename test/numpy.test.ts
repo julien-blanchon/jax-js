@@ -5,7 +5,7 @@ import {
   jvp,
   numpy as np,
   setBackend,
-} from "@jax-js/core";
+} from "@jax-js/jax";
 import { beforeEach, expect, suite, test } from "vitest";
 
 const backendsAvailable = await init(...backendTypes);

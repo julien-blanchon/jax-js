@@ -6,7 +6,7 @@ import {
   makeJaxpr,
   numpy as np,
   vjp,
-} from "@jax-js/core";
+} from "@jax-js/jax";
 import { expect, suite, test } from "vitest";
 
 await init("cpu");

@@ -16,7 +16,7 @@
     Have you ever wanted to use NumPy or PyTorch in your browser?
   </p>
 
-  <pre class="mb-6 text-center"><code>npm install @jax-js/core</code></pre>
+  <pre class="mb-6 text-center"><code>npm install @jax-js/jax</code></pre>
 
   <p class="mb-6">
     This is a machine learning framework that brings high-performance,

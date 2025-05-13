@@ -7,7 +7,7 @@
     "moduleResolution": "bundler",
     "allowJs": true,
     "paths": {
-      "@jax-js/core": ["."]
+      "@jax-js/jax": ["."]
     },
     "types": ["@webgpu/types"],
     "noEmit": true

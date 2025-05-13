@@ -34,7 +34,7 @@
     "vite": "^6.1.1"
   },
   "dependencies": {
-    "@jax-js/core": "file:../",
+    "@jax-js/jax": "file:../",
     "@rich_harris/svelte-split-pane": "^2.0.0",
     "@rollup/browser": "^4.34.8",
     "@tensorflow/tfjs": "^4.22.0",

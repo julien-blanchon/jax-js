@@ -1,4 +1,4 @@
-import jaxTypesSrc from "@jax-js/core/dist/index.d.ts?raw";
+import jaxTypesSrc from "@jax-js/jax/dist/index.d.ts?raw";
 import * as monaco from "monaco-editor";
 import editorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
 import cssWorker from "monaco-editor/esm/vs/language/css/css.worker?worker";
@@ -40,7 +40,7 @@ monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
 
 monaco.languages.typescript.typescriptDefaults.addExtraLib(
   jaxTypesSrc,
-  "file:///node_modules/@jax-js/core/index.d.ts",
+  "file:///node_modules/@jax-js/jax/index.d.ts",
 );
 
 export default monaco;

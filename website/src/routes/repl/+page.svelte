@@ -22,7 +22,7 @@
   }[] = [
     {
       title: "Arrays",
-      code: String.raw`import { grad, numpy as np } from "@jax-js/core";
+      code: String.raw`import { grad, numpy as np } from "@jax-js/jax";
 
 const f = (x: np.Array) => x.mul(x);
 const df = grad(f);
@@ -34,7 +34,7 @@ console.log(df(x).js());
     },
     {
       title: "Tracing Jaxprs",
-      code: String.raw`import { jvp, makeJaxpr, numpy as np } from "@jax-js/core";
+      code: String.raw`import { jvp, makeJaxpr, numpy as np } from "@jax-js/jax";
 
 const f = (x: np.Array) => np.mul(x.add(2), x);
 const fdot = (x: np.Array) => jvp(f, [x], [np.array(1)])[1];
@@ -47,7 +47,7 @@ console.log(jaxpr.toString());
     },
     {
       title: "Logistic regression",
-      code: String.raw`import { numpy as np } from "@jax-js/core";
+      code: String.raw`import { numpy as np } from "@jax-js/jax";
 
 const X = np.array([[1, 1], [1, 2], [2, 2], [2, 3]]);
 const y = np.dot(X, np.array([1, 2])).add(3);
@@ -57,7 +57,7 @@ const y = np.dot(X, np.array([1, 2])).add(3);
     },
     {
       title: "Mandelbrot set",
-      code: String.raw`import { numpy as np } from "@jax-js/core";
+      code: String.raw`import { numpy as np } from "@jax-js/jax";
 // TODO
 `,
     },
@@ -89,7 +89,7 @@ const y = np.dot(X, np.array([1, 2])).add(3);
     if (running) return;
     running = true;
 
-    const jax = await import("@jax-js/core");
+    const jax = await import("@jax-js/jax");
     const ts = await import("typescript");
     const { rollup } = await import("@rollup/browser");
 
@@ -140,7 +140,7 @@ const y = np.dot(X, np.array([1, 2])).add(3);
       const bundle = await rollup({
         input: "index.ts",
         plugins: [typescriptPlugin, virtualPlugin],
-        external: ["@jax-js/core"],
+        external: ["@jax-js/jax"],
       });
 
       // We use the "system" format because it allows you to use async/await.
@@ -165,7 +165,7 @@ const y = np.dot(X, np.array([1, 2])).add(3);
         .constructor as any;
 
       await new AsyncFunction("_MODULES", "console", bundledCode)(
-        { "@jax-js/core": jax },
+        { "@jax-js/jax": jax },
         mockConsole,
       );
     } catch (e: any) {
@@ -295,7 +295,7 @@ const y = np.dot(X, np.array([1, 2])).add(3);
         </p>
 
         <pre class="mb-4 text-sm bg-gray-100 px-2 py-1 rounded"><code
-            >npm i @jax-js/core</code
+            >npm i @jax-js/jax</code
           ></pre>
 
         <h2 class="text-lg mt-8 mb-2">Examples</h2>

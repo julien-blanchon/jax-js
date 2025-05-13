@@ -1,5 +1,5 @@
 {
-  "name": "@jax-js/core",
+  "name": "@jax-js/jax",
   "version": "0.0.0",
   "description": "Numerical computing and ML in the browser",
   "keywords": [

@@ -1,4 +1,4 @@
-import { numpy as np } from "@jax-js/core";
+import { numpy as np } from "@jax-js/jax";
 import { expect } from "vitest";
 
 expect.extend({
