@@ -76,8 +76,7 @@ suite("jax.vmap()", () => {
   });
 
   test("vectorizes with a static argument", () => {
-    // f multiplies an array by a scalar.
-    const f = (x: np.Array, y: number) => x.mul(y);
+    const f = (x: np.Array, y: np.Array) => x.mul(y);
     // Here we want to batch only over the first argument.
     const batchedF = vmap(f, [0, null]);
     const x = np.array([

@@ -31,13 +31,13 @@ export const vmap = vmapModule.vmap as <
 >(
   f: WithArgsSubtype<F, JsTree<ArrayLike>>,
   inAxes: MapJsTree<Parameters<F>, Array, number | null>,
-) => F;
+) => (...args: MapJsTree<Parameters<F>, Array, ArrayLike>) => ReturnType<F>;
 
 /** Compute the Jacobian evaluated column-by-column by forward-mode AD. */
 export const jacfwd = vmapModule.jacfwd as <F extends (x: Array) => Array>(
   f: F,
   x: Array,
-) => F;
+) => (...args: MapJsTree<Parameters<F>, Array, ArrayLike>) => ReturnType<F>;
 
 /** Construct a Jaxpr by dynamically tracing a function with example inputs. */
 export const makeJaxpr = jaxprModule.makeJaxpr as unknown as <
