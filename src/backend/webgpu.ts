@@ -14,7 +14,8 @@ type ShaderDispatch = ShaderInfo & {
 
 /** Implementation of `Backend` that uses WebGPU in browsers. */
 export class WebGPUBackend implements Backend {
-  type: BackendType = "webgpu";
+  readonly type: BackendType = "webgpu";
+  readonly maxArgs: number;
 
   readonly pipelines: ShaderPipelineCache;
   readonly syncReader: SyncReader;
@@ -31,6 +32,7 @@ export class WebGPUBackend implements Backend {
         device.adapterInfo.architecture,
       );
     }
+    this.maxArgs = this.device.limits.maxStorageBuffersPerShaderStage - 1;
     this.pipelines = new ShaderPipelineCache(device);
     this.syncReader = new SyncReader(device);
     this.buffers = new Map();

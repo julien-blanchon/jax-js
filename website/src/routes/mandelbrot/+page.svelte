@@ -5,6 +5,8 @@
   const width = 1000;
   const height = 800;
 
+  let milliseconds = $state(0);
+
   onMount(async () => {
     await init("webgpu");
     setBackend("webgpu");
@@ -109,7 +111,8 @@
     onclick={async () => {
       const start = performance.now();
       const result = (await calculateMandelbrot(100).data()) as Int32Array;
-      console.log(`Mandelbrot calculated in ${performance.now() - start} ms`);
+      milliseconds = performance.now() - start;
+      console.log(`Mandelbrot calculated in ${milliseconds} ms`);
       renderMandelbrot(result);
     }}
   >
@@ -120,12 +123,17 @@
     onclick={async () => {
       const start = performance.now();
       const result = (await calculateMandelbrotJit10(100).data()) as Int32Array;
-      console.log(`Mandelbrot calculated in ${performance.now() - start} ms`);
+      milliseconds = performance.now() - start;
+      console.log(`Mandelbrot calculated in ${milliseconds} ms`);
       renderMandelbrot(result);
     }}
   >
     Calculate Mandelbrot Jit10
   </button>
+
+  {#if milliseconds}
+    <span class="ml-2 text-sm">Computed in {milliseconds.toFixed(1)} ms</span>
+  {/if}
 
   <canvas bind:this={canvas} {width} {height} class="my-8"></canvas>
 </main>

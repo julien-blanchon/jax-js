@@ -63,7 +63,6 @@ npm test
 ## Next on Eric's mind
 
 - Continue timing / perf on Mandelbrot example
-- Need to break up operations if jit stitches more than 10 inputs (maxStorageBuffersPerShaderStage)
 - Test for if you take sin(), cos() of an int/bool
 - Rename "backend" to "device" in public API
 - How many threads to create per workgroup, depends on hardware

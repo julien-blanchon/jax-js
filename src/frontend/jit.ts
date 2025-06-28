@@ -211,41 +211,7 @@ export function jitCompile(
   const nargs = jaxpr.inBinders.length - consts.length;
   const builder = new JitProgramBuilder(backend, nargs);
 
-  // Move backwards through the program and compute "black" endpoints.
-  //
-  // Black nodes are the endpoints of a fused expression, where we dispatch a
-  // kernel to the backend. The outputs are marked black, as well as any
-  // reductions.
-  //
-  // Also, mark a node black if there are at least two black nodes that can be
-  // reached from it, while only going through non-black nodes.
-  const nextBlack = new Map<Var, Var>();
-  for (const v of jaxpr.outs) {
-    if (v instanceof Var) nextBlack.set(v, v);
-  }
-  for (let i = jaxpr.eqns.length - 1; i >= 0; i--) {
-    if (jaxpr.eqns[i].primitive === Primitive.ReduceSum) {
-      for (const v of jaxpr.eqns[i].outBinders) nextBlack.set(v, v);
-      continue;
-    }
-    const reach = new Set<Var>();
-    for (let j = i + 1; j < jaxpr.eqns.length; j++) {
-      for (const v of jaxpr.eqns[j].inputs) {
-        if (v instanceof Var && jaxpr.eqns[i].outBinders.includes(v)) {
-          for (const o of jaxpr.eqns[j].outBinders) {
-            const u = nextBlack.get(o);
-            if (u) reach.add(u);
-          }
-        }
-      }
-    }
-    if (reach.size === 1) {
-      const b = reach.values().next().value!;
-      for (const v of jaxpr.eqns[i].outBinders) nextBlack.set(v, b);
-    } else if (reach.size > 1) {
-      for (const v of jaxpr.eqns[i].outBinders) nextBlack.set(v, v);
-    }
-  }
+  const blackNodes = splitGraphDataflow(backend, jaxpr);
 
   // Initialize jaxpr inBinders.
   const ctx = new Map<Var, JitValue>();
@@ -277,7 +243,6 @@ export function jitCompile(
           for (const [gid, jitId] of jitValue.args.entries()) {
             let newGid = inputArgs.indexOf(jitId);
             if (newGid === -1) {
-              // TODO: Check if this exceeds maximum number of buffer bindings.
               newGid = inputArgs.length;
               inputArgs.push(jitId);
             }
@@ -316,7 +281,7 @@ export function jitCompile(
     // Then dispatch the kernel, if it is a "black" node as determined from
     // dataflow analysis above.
     const outVar = eqn.outBinders[0];
-    if (kernel.reduction || nextBlack.get(outVar) === outVar) {
+    if (kernel.reduction || blackNodes.has(outVar)) {
       const outId = builder.pushKernel(kernel, inputArgs);
       ctx.set(outVar, { type: "imm", arg: outId });
     } else {
@@ -470,3 +435,130 @@ const jitRules: Partial<Record<Primitive, JitRule>> = {
     },
   ),
 };
+
+/** Determines how to split the Jaxpr into kernels via dataflow analysis. */
+function splitGraphDataflow(backend: Backend, jaxpr: Jaxpr): Set<Var> {
+  // Calculate the equation where each intermediate variable was defined.
+  const varToEqn = new Map<Var, number>();
+  for (let i = 0; i < jaxpr.eqns.length; i++) {
+    const eqn = jaxpr.eqns[i];
+    for (const v of eqn.outBinders) {
+      if (v instanceof Var) varToEqn.set(v, i);
+    }
+  }
+
+  // Move backwards through the program and compute "black" endpoints.
+  //
+  // Black nodes are the endpoints of a fused expression, where we dispatch a
+  // kernel to the backend. The outputs are marked black, as well as any
+  // reductions.
+  //
+  // Also, mark a node black if there are at least two black nodes that can be
+  // reached from it, while only going through non-black nodes.
+  const blackNodes = new Set<Var>();
+  const p1NextBlack = new Map<Var, Var>();
+  for (const v of jaxpr.outs) {
+    if (v instanceof Var) {
+      blackNodes.add(v);
+      p1NextBlack.set(v, v);
+    }
+  }
+  for (let i = jaxpr.eqns.length - 1; i >= 0; i--) {
+    const eqn = jaxpr.eqns[i];
+    if (
+      eqn.primitive === Primitive.ReduceSum ||
+      eqn.outBinders.some((v) => blackNodes.has(v))
+    ) {
+      for (const v of eqn.outBinders) {
+        blackNodes.add(v);
+        p1NextBlack.set(v, v);
+      }
+      continue;
+    }
+    const reach = new Set<Var>();
+    for (let j = i + 1; j < jaxpr.eqns.length; j++) {
+      for (const v of jaxpr.eqns[j].inputs) {
+        if (v instanceof Var && eqn.outBinders.includes(v)) {
+          for (const o of jaxpr.eqns[j].outBinders) {
+            const u = p1NextBlack.get(o);
+            if (u) reach.add(u);
+          }
+        }
+      }
+    }
+    if (reach.size === 1) {
+      const b = reach.values().next().value!;
+      for (const v of eqn.outBinders) p1NextBlack.set(v, b);
+    } else if (reach.size > 1) {
+      for (const v of eqn.outBinders) {
+        blackNodes.add(v);
+        p1NextBlack.set(v, v);
+      }
+    }
+  }
+
+  // Also, mark nodes black if the maximum number of arguments per kernel is
+  // exceeded (i.e., maxComputeBuffersPerShaderStage for WebGPU). This needs to
+  // be done in a second forward pass over the equations list.
+  const p2Deps = new Map<Var, Set<Var>>(); // -> members are Var (black) or inBinders.
+  for (const v of jaxpr.inBinders) {
+    p2Deps.set(v, new Set([v])); // Each input is a dependency of itself.
+  }
+  let p2idx = 0;
+  while (p2idx < jaxpr.eqns.length) {
+    const eqn = jaxpr.eqns[p2idx++];
+    const deps: Set<Var>[] = [];
+    if (eqn.outBinders.some((v) => blackNodes.has(v))) {
+      continue; // Already black, no need to check inputs.
+    }
+    for (const input of eqn.inputs) {
+      if (input instanceof Var) {
+        if (blackNodes.has(input)) deps.push(new Set([input]));
+        else deps.push(p2Deps.get(input)!);
+      } else {
+        deps.push(new Set());
+      }
+    }
+    const depCounter = new Map<Var, number>(); // includes counts
+    for (const depSet of deps) {
+      for (const dep of depSet) {
+        depCounter.set(dep, (depCounter.get(dep) ?? 0) + 1);
+      }
+    }
+    if (depCounter.size > backend.maxArgs) {
+      // We have too many dependencies, so we need to backtrack and mark one of
+      // the inputs as black. By heuristic, we'll mark the one with the most
+      // unique dependencies.
+      let maxUniqueDeps = 0;
+      let assocInput = -1;
+      for (let i = 0; i < eqn.inputs.length; i++) {
+        const input = eqn.inputs[i];
+        if (input instanceof Var && varToEqn.has(input)) {
+          let uniqueDeps = 0;
+          for (const dep of deps[i]) {
+            if (depCounter.get(dep) === 1) uniqueDeps++;
+          }
+          if (uniqueDeps > maxUniqueDeps) {
+            maxUniqueDeps = uniqueDeps;
+            assocInput = i;
+          }
+        }
+      }
+      if (assocInput === -1) {
+        throw new Error(
+          `internal: maxArgs, no input found to mark as black in Jaxpr equation ${eqn}`,
+        );
+      }
+      const assocVar = eqn.inputs[assocInput] as Var;
+      p2idx = varToEqn.get(assocVar)!; // backtrack to that equation
+      for (const out of jaxpr.eqns[p2idx].outBinders) {
+        blackNodes.add(out);
+      }
+    } else {
+      const s = new Set(depCounter.keys());
+      for (const out of eqn.outBinders) p2Deps.set(out, s);
+    }
+  }
+
+  return blackNodes;
+}

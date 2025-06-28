@@ -4,7 +4,8 @@ import { tuneNullopt } from "../tuner";
 
 /** Most basic implementation of `Backend` for testing. */
 export class CPUBackend implements Backend {
-  type: BackendType = "cpu";
+  readonly type: BackendType = "cpu";
+  readonly maxArgs = Infinity;
 
   #buffers: Map<Slot, { ref: number; buffer: ArrayBuffer }>;
   #nextSlot: number;
