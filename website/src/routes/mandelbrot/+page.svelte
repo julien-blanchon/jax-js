@@ -108,7 +108,7 @@
   <h1 class="text-2xl mb-2">mandelbrot</h1>
 
   <button
-    onclick={async () => {
+    onmousedown={async () => {
       const start = performance.now();
       const result = (await calculateMandelbrot(100).data()) as Int32Array;
       milliseconds = performance.now() - start;
@@ -120,7 +120,7 @@
   </button>
 
   <button
-    onclick={async () => {
+    onmousedown={async () => {
       const start = performance.now();
       const result = (await calculateMandelbrotJit10(100).data()) as Int32Array;
       milliseconds = performance.now() - start;
