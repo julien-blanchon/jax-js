@@ -190,9 +190,9 @@ export function jitCompile(
     );
   }
   for (let i = 0; i < consts.length; i++) {
-    if (consts[i].backend !== backend.type) {
+    if (consts[i].device !== backend.type) {
       throw new TypeError(
-        `Const ${i} has backend ${consts[i].backend}, but expected ${backend.type}`,
+        `Const ${i} has device ${consts[i].device}, but expected ${backend.type}`,
       );
     }
   }
@@ -375,6 +375,8 @@ const jitRules: Partial<Record<Primitive, JitRule>> = {
   ),
   [Primitive.Sin]: broadcastedJit(([a]) => AluExp.sin(a)),
   [Primitive.Cos]: broadcastedJit(([a]) => AluExp.cos(a)),
+  [Primitive.Min]: broadcastedJit(([a, b]) => AluExp.min(a, b)),
+  [Primitive.Max]: broadcastedJit(([a, b]) => AluExp.max(a, b)),
   [Primitive.ReduceSum](nargs, [a], [as], { axis }: { axis: number[] }) {
     const keptAxes: number[] = [];
     const shiftedAxes: number[] = [];

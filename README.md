@@ -90,6 +90,10 @@ npm test
   - [ ] Garbage collection for JIT programs, maybe needs to be moved off-device
   - [ ] Memory scheduling, buffer allocation (can be tricky)
 - [ ] Demos: Navier-Stokes, neural networks, statistics
+- [ ] Features for neural networks
+  - [ ] Convolution
+  - [ ] Random and initializers
+  - [ ] Optimizers (optax package?)
 - [ ] Wasm backend (needs malloc)
   - [ ] SIMD support for Wasm backend
 - [ ] Device switching with `.to()` between webgpu/cpu/wasm

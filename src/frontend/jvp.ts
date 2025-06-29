@@ -15,6 +15,9 @@ import {
   flattenFun,
   flip,
   fullRaise,
+  less,
+  max,
+  min,
   neg,
   newMain,
   Primitive,
@@ -106,6 +109,12 @@ const jvpRules: Record<Primitive, JvpRule> = {
   },
   [Primitive.Cos]([x], [dx]) {
     return [[cos(x.ref)], [neg(sin(x)).mul(dx)]];
+  },
+  [Primitive.Min]([x, y], [dx, dy]) {
+    return [[min(x.ref, y.ref)], [where(less(x, y), dx, dy)]];
+  },
+  [Primitive.Max]([x, y], [dx, dy]) {
+    return [[max(x.ref, y.ref)], [where(less(x, y), dy, dx)]];
   },
   [Primitive.ReduceSum]([x], [dx], { axis }: { axis: number[] }) {
     return [[reduceSum(x, axis)], [reduceSum(dx, axis)]];

@@ -3,10 +3,10 @@ import { beforeEach, expect, suite, test } from "vitest";
 
 import { DType } from "../src/alu";
 
-const backendsAvailable = await init();
+const devicesAvailable = await init();
 
-suite.each(devices)("backend:%s", (device) => {
-  const skipped = !backendsAvailable.includes(device);
+suite.each(devices)("device:%s", (device) => {
+  const skipped = !devicesAvailable.includes(device);
   beforeEach(({ skip }) => {
     if (skipped) skip();
     setDevice(device);
@@ -447,6 +447,48 @@ suite.each(devices)("backend:%s", (device) => {
       expect(X.shape).toEqual([3, 2, 4]);
       expect(Y.shape).toEqual([3, 2, 4]);
       expect(Z.shape).toEqual([3, 2, 4]);
+    });
+  });
+
+  suite("jax.numpy.minimum()", () => {
+    test("computes element-wise minimum", () => {
+      const x = np.array([1, 2, 3]);
+      const y = np.array([4, 2, 0]);
+      const z = np.minimum(x, y);
+      expect(z.js()).toEqual([1, 2, 0]);
+    });
+
+    test("works with jvp", () => {
+      const x = np.array([1, 3, 3]);
+      const y = np.array([4, 2, 0]);
+      const [z, dz] = jvp(
+        (x: np.Array, y: np.Array) => np.minimum(x, y),
+        [x, y],
+        [np.ones([3]), np.zeros([3])],
+      );
+      expect(z.js()).toEqual([1, 2, 0]);
+      expect(dz.js()).toEqual([1, 0, 0]);
+    });
+  });
+
+  suite("jax.numpy.maximum()", () => {
+    test("computes element-wise maximum", () => {
+      const x = np.array([1, 2, 3]);
+      const y = np.array([4, 2, 0]);
+      const z = np.maximum(x, y);
+      expect(z.js()).toEqual([4, 2, 3]);
+    });
+
+    test("works with jvp", () => {
+      const x = np.array([1, 1, 3]);
+      const y = np.array([4, 2, 0]);
+      const [z, dz] = jvp(
+        (x: np.Array, y: np.Array) => np.maximum(x, y),
+        [x, y],
+        [np.ones([3]), np.zeros([3])],
+      );
+      expect(z.js()).toEqual([4, 2, 3]);
+      expect(dz.js()).toEqual([0, 0, 1]);
     });
   });
 });

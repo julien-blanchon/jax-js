@@ -14,6 +14,8 @@ export enum Primitive {
   Neg = "neg",
   Sin = "sin",
   Cos = "cos",
+  Min = "min",
+  Max = "max",
   ReduceSum = "reduce_sum",
   Compare = "compare",
   Where = "where",
@@ -51,6 +53,14 @@ export function sin(x: TracerValue) {
 
 export function cos(x: TracerValue) {
   return bind1(Primitive.Cos, [x]);
+}
+
+export function min(x: TracerValue, y: TracerValue) {
+  return bind1(Primitive.Min, [x, y]);
+}
+
+export function max(x: TracerValue, y: TracerValue) {
+  return bind1(Primitive.Max, [x, y]);
 }
 
 export function compare(x: TracerValue, y: TracerValue, op: CompareOp) {

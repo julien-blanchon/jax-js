@@ -64,3 +64,19 @@ test("AluExp raises TypeError for unsupported dtypes", () => {
   expect(() => AluExp.cos(AluExp.bool(false))).toThrow(TypeError);
   expect(() => AluExp.reciprocal(AluExp.bool(true))).toThrow(TypeError);
 });
+
+test("AluOp.min and AluOp.max", () => {
+  const a = AluExp.i32(3);
+  const b = AluExp.i32(4);
+  const minOp = AluExp.min(a, b);
+  expect(minOp.evaluate({})).toBe(3);
+  expect(minOp.dtype).toBe(DType.Int32);
+
+  const maxOp = AluExp.max(a, b);
+  expect(maxOp.evaluate({})).toBe(4);
+  expect(maxOp.dtype).toBe(DType.Int32);
+
+  const c = AluExp.special(DType.Int32, "c", 5);
+  const minOp2 = AluExp.min(a, c);
+  expect(minOp2.evaluate({ c: 2 })).toBe(2);
+});

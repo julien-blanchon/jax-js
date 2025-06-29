@@ -13,10 +13,10 @@ import { devices, getBackend, init } from "../backend";
 import { ShapeTracker, unravelAlu } from "../shape";
 import { range } from "../utils";
 
-const backendsAvailable = await init();
+const devicesAvailable = await init();
 
-suite.each(devices)("backend:%s", (device) => {
-  const skipped = !backendsAvailable.includes(device);
+suite.each(devices)("device:%s", (device) => {
+  const skipped = !devicesAvailable.includes(device);
 
   beforeEach(({ skip }) => {
     if (skipped) skip();

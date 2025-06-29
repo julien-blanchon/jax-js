@@ -3,6 +3,7 @@ import * as jaxprModule from "./frontend/jaxpr";
 import * as jvpModule from "./frontend/jvp";
 import * as linearizeModule from "./frontend/linearize";
 import * as vmapModule from "./frontend/vmap";
+import * as nn from "./nn";
 import * as numpy from "./numpy";
 import { Array, ArrayLike } from "./numpy";
 import * as tree from "./tree";
@@ -10,7 +11,7 @@ import type { JsTree, JsTreeDef, MapJsTree } from "./tree";
 
 import "./polyfills";
 
-export { init, type Device, devices, numpy, setDevice, tree };
+export { init, type Device, devices, nn, numpy, setDevice, tree };
 
 // Assert that a function's arguments are a subtype of the given type.
 type WithArgsSubtype<F extends (args: any[]) => any, T> =

@@ -672,6 +672,8 @@ export const abstractEvalRules: Record<Primitive, AbstractEvalRule> = {
   [Primitive.Neg]: vectorizedUnopAbstractEval,
   [Primitive.Sin]: vectorizedUnopAbstractEval,
   [Primitive.Cos]: vectorizedUnopAbstractEval,
+  [Primitive.Min]: binopAbstractEval,
+  [Primitive.Max]: binopAbstractEval,
   [Primitive.ReduceSum]([x], { axis }: { axis: number[] }) {
     const axisSet = new Set(axis);
     const newShape = x.shape.filter((_, i) => !axisSet.has(i));

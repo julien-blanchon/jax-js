@@ -567,6 +567,12 @@ export class Array extends Tracer {
       [Primitive.Cos]([x]) {
         return [x.#unary(AluOp.Cos)];
       },
+      [Primitive.Min]([x, y]) {
+        return [x.#binary(AluOp.Min, y)];
+      },
+      [Primitive.Max]([x, y]) {
+        return [x.#binary(AluOp.Max, y)];
+      },
       [Primitive.ReduceSum]([x], { axis }: { axis: number[] }) {
         if (axis.length === 0) return [x];
         return [x.#moveAxesDown(axis).#reduce(AluOp.Add)];

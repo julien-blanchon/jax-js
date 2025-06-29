@@ -4,10 +4,10 @@ import { devices, init, setDevice } from "../backend";
 import { arange, array, ones, zeros } from "./array";
 import { DType } from "../alu";
 
-const backendsAvailable = await init();
+const devicesAvailable = await init();
 
-suite.each(devices)("backend:%s", (device) => {
-  const skipped = !backendsAvailable.includes(device);
+suite.each(devices)("device:%s", (device) => {
+  const skipped = !devicesAvailable.includes(device);
 
   beforeEach(({ skip }) => {
     if (skipped) skip();

@@ -10,6 +10,8 @@ import {
   cos,
   flattenFun,
   fullRaise,
+  max,
+  min,
   mul,
   ndim,
   neg,
@@ -211,6 +213,8 @@ const vmapRules: Partial<Record<Primitive, VmapRule>> = {
   [Primitive.Neg]: vectorizedUnopBatchingRule(neg),
   [Primitive.Sin]: vectorizedUnopBatchingRule(sin),
   [Primitive.Cos]: vectorizedUnopBatchingRule(cos),
+  [Primitive.Min]: broadcastBatcher(min),
+  [Primitive.Max]: broadcastBatcher(max),
   [Primitive.ReduceSum](axisSize, [x], [xBdim], { axis }: { axis: number[] }) {
     if (xBdim === null) {
       return [[reduceSum(x, axis)], [null]];

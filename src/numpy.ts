@@ -71,6 +71,10 @@ export const negative = core.neg as (x: ArrayLike) => Array;
 export const sin = core.sin as (x: ArrayLike) => Array;
 /** Element-wise cosine function (takes radians). */
 export const cos = core.cos as (x: ArrayLike) => Array;
+/** Return element-wise minimum of the input arrays. */
+export const minimum = core.min as (x: ArrayLike, y: ArrayLike) => Array;
+/** Return element-wise maximum of the input arrays. */
+export const maximum = core.max as (x: ArrayLike, y: ArrayLike) => Array;
 /** Compare two arrays element-wise. */
 export const greater = core.greater as (x: ArrayLike, y: ArrayLike) => Array;
 /** Compare two arrays element-wise. */
@@ -353,14 +357,13 @@ export function meshgrid(
  *
  * If either bound is undefined, it is ignored.
  */
-export function clip(a: Array, min?: ArrayLike, max?: ArrayLike): Array {
+export function clip(a: ArrayLike, min?: ArrayLike, max?: ArrayLike): Array {
+  a = fudgeArray(a);
   if (max !== undefined) {
-    const maxArray = array(max);
-    a = where(greater(a.ref, maxArray.ref), maxArray, a);
+    a = minimum(a, max);
   }
   if (min !== undefined) {
-    const minArray = array(min);
-    a = where(less(a.ref, minArray.ref), minArray, a);
+    a = maximum(a, min);
   }
   return a; // No clipping, just return the original array.
 }
