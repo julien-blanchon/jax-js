@@ -263,12 +263,12 @@ function pipelineSource(device: GPUDevice, kernel: Kernel): ShaderInfo {
   const workgroupSize = findPow2(tune.threadCount, 256);
 
   // Determine grid size, may need to be 3D due to limits on X.
-  // maxComputeWorkgroupsPerDimension ~ 65535, so we use 32768 when exceeded.
+  // maxComputeWorkgroupsPerDimension ~ 65535, so we use 16384 when exceeded.
   const gridSize = Math.ceil(tune.threadCount / workgroupSize);
   let gridX = gridSize;
   let gridY = 1;
   if (gridSize > device.limits.maxComputeWorkgroupsPerDimension) {
-    gridX = 32768;
+    gridX = 16384; // 2^14
     gridY = Math.ceil(gridSize / gridX);
   }
 
@@ -285,8 +285,8 @@ function pipelineSource(device: GPUDevice, kernel: Kernel): ShaderInfo {
     );
   } else {
     emit(
-      `if (${gridY} * id.x + id.y >= ${tune.threadCount}) { return; }`,
-      `let gidx: i32 = i32(${gridY} * id.x + id.y);`,
+      `if (${gridX} * id.y + id.x >= ${tune.threadCount}) { return; }`,
+      `let gidx: i32 = i32(${gridX} * id.y + id.x);`,
     );
   }
 
