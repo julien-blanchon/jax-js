@@ -498,15 +498,15 @@ export class Array extends Tracer {
       exp = AluExp.where(
         valid,
         this.#source.substitute({ idx: index }),
-        AluExp.f32(0),
+        AluExp.const(this.#dtype, 0),
       );
     } else {
       // Otherwise, use the global index.
       inputs.push(this.#source);
       exp = AluExp.where(
         valid,
-        AluExp.globalIndex(DType.Float32, 0, index),
-        AluExp.f32(0),
+        AluExp.globalIndex(this.#dtype, 0, index),
+        AluExp.const(this.#dtype, 0),
       );
     }
 

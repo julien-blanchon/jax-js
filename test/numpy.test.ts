@@ -754,4 +754,32 @@ suite.each(devices)("device:%s", (device) => {
       ]);
     });
   });
+
+  suite("jax.numpy.argmax()", () => {
+    test("finds maximum of logits", () => {
+      const x = np.argmax(np.array([0.1, 0.2, 0.3, 0.2]));
+      expect(x.js()).toEqual(2);
+    });
+
+    test("retrieves first index of maximum", () => {
+      const x = np.argmax(
+        np.array([
+          [0.1, -0.2, -0.3, 0.1],
+          [0, 0.1, 0.3, 0.3],
+        ]),
+        1,
+      );
+      expect(x.js()).toEqual([0, 2]);
+    });
+
+    test("runs on flattened array by default", () => {
+      const x = np.argmax(
+        np.array([
+          [0.1, -0.2],
+          [0.3, 0.1],
+        ]),
+      );
+      expect(x.js()).toEqual(2); // Index of maximum in flattened array
+    });
+  });
 });

@@ -387,7 +387,7 @@ function pipelineSource(device: GPUDevice, kernel: Kernel): ShaderInfo {
     const acc = [...Array(upcast)].map((_, i) => `acc${i}`);
     for (let i = 0; i < upcast; i++) {
       emit(
-        `var ${acc[i]}: ${dtypeToWgsl(tune.exp.dtype)} = ${constToWgsl(re.dtype, re.identity)};`,
+        `var ${acc[i]}: ${dtypeToWgsl(re.dtype)} = ${constToWgsl(re.dtype, re.identity)};`,
       ); // Initialize accumulators.
     }
 

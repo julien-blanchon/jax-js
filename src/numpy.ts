@@ -186,6 +186,78 @@ export function max(
   return core.reduce(a, AluOp.Max, axis, opts) as Array;
 }
 
+/**
+ * Returns the indices of the minimum values along an axis.
+ *
+ * By default, index is into the flatted array, otherwise it is along the
+ * specified axis.
+ */
+export function argmin(
+  a: ArrayLike,
+  axis?: number,
+  opts?: core.ReduceOpts,
+): Array {
+  a = fudgeArray(a);
+  if (axis === undefined) {
+    a = a.ravel();
+    axis = 0; // Default to the first axis of the flattened array.
+  } else {
+    axis = checkAxis(axis, a.ndim);
+  }
+  const shape = a.shape;
+  const isMax = equal(a, min(a.ref, axis, { keepDims: true }));
+  const length = scalar(shape[axis], { dtype: int32, device: a.device });
+  const idx = where(
+    // TODO: Simplify to just isMax.astype(int32) when we have that.
+    isMax,
+    scalar(1, { dtype: int32, device: a.device }),
+    scalar(0, { dtype: int32, device: a.device }),
+  ).mul(
+    // Index by length-i instead of i, so we can take the max and get the first i.
+    arange(shape[axis], 0, -1, { dtype: int32, device: a.device }).reshape([
+      shape[axis],
+      ...rep(shape.length - axis - 1, 1),
+    ]),
+  );
+  return length.sub(max(idx, axis, opts));
+}
+
+/**
+ * Returns the indices of the maximum values along an axis.
+ *
+ * By default, index is into the flatted array, otherwise it is along the
+ * specified axis.
+ */
+export function argmax(
+  a: ArrayLike,
+  axis?: number,
+  opts?: core.ReduceOpts,
+): Array {
+  a = fudgeArray(a);
+  if (axis === undefined) {
+    a = a.ravel();
+    axis = 0; // Default to the first axis of the flattened array.
+  } else {
+    axis = checkAxis(axis, a.ndim);
+  }
+  const shape = a.shape;
+  const isMax = equal(a, max(a.ref, axis, { keepDims: true }));
+  const length = scalar(shape[axis], { dtype: int32, device: a.device });
+  const idx = where(
+    // TODO: Simplify to just isMax.astype(int32) when we have that.
+    isMax,
+    scalar(1, { dtype: int32, device: a.device }),
+    scalar(0, { dtype: int32, device: a.device }),
+  ).mul(
+    // Index by length-i instead of i, so we can take the max and get the first i.
+    arange(shape[axis], 0, -1, { dtype: int32, device: a.device }).reshape([
+      shape[axis],
+      ...rep(shape.length - axis - 1, 1),
+    ]),
+  );
+  return length.sub(max(idx, axis, opts));
+}
+
 /** Reverse the elements in an array along the given axes. */
 export function flip(x: ArrayLike, axis?: number | number[]): Array {
   const nd = ndim(x);
