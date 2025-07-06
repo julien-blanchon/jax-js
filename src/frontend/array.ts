@@ -923,7 +923,7 @@ function dataToJs(
   dtype: DType,
   data: Float32Array | Int32Array,
   shape: number[],
-): RecursiveArray<number> | RecursiveArray<boolean> {
+): RecursiveArray<number> | RecursiveArray<boolean> | any {
   if (shape.length === 0) {
     return dtype === DType.Bool ? Boolean(data[0]) : data[0];
   }
