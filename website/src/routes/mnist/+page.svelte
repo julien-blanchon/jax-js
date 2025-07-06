@@ -127,14 +127,30 @@
         log(`=> Evaluating on test set...`);
         const testSize = X_test.shape[0];
         const testLoss: number[] = [];
+        const testAcc: number[] = [];
         for (let i = 0; i + batchSize <= testSize; i += batchSize) {
           const X = X_test.ref.slice([i, i + batchSize]).reshape([-1, 784]);
           const y = y_test.ref.slice([i, i + batchSize]);
           testLoss.push(
-            (await loss(tree.ref(params), X, y).jsAsync()) as number,
+            (await loss(tree.ref(params), X.ref, y.ref).jsAsync()) as number,
+          );
+          // console.log(
+          //   await np.argmax(predictJit(tree.ref(params), X.ref), 1).jsAsync(),
+          // );
+          testAcc.push(
+            (await np
+              .where(
+                np.argmax(predictJit(tree.ref(params), X), 1).equal(y),
+                1,
+                0,
+              )
+              .sum()
+              .jsAsync()) as number,
           );
         }
         const testLossAvg = testLoss.reduce((a, b) => a + b) / testLoss.length;
+        const testAccAvg = testAcc.reduce((a, b) => a + b) / testSize;
+        log(`=> Test acc: ${testAccAvg.toFixed(4)}`);
         log(`=> Test loss: ${testLossAvg.toFixed(4)}`);
       }
     } finally {

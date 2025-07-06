@@ -67,6 +67,7 @@ npm test
 - Investigate why jax-js Matmul is 2x slower on Safari TP than unroll kernel
 - How many threads to create per workgroup, depends on hardware
   - Need to break up kernel dispatches if workgroup count exceeds 65536
+- Need to add type-casting operation, like `astype()`, probably creates a view
 - Think about two-stage `cumsum()`
 - Lazy type conversions on arrays via views
 - Frontend transformations need to match backend type for pureArray() and zeros() calls
