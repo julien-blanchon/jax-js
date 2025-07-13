@@ -10,9 +10,13 @@
   } from "@jax-js/jax";
   import { onMount } from "svelte";
 
+  import LineChart from "$lib/chart/LineChart.svelte";
   import { fetchMnist } from "$lib/dataset/mnist";
 
   let logs = $state<string[]>([]);
+
+  let trainMetrics = $state<{ iteration: number; loss: number }[]>([]);
+  let testMetrics = $state<{ epoch: number; loss: number; acc: number }[]>([]);
 
   function log(msg: string) {
     logs.push(msg);
@@ -93,6 +97,8 @@
 
   async function run() {
     logs = [];
+    trainMetrics = [];
+    testMetrics = [];
 
     let params = await initializeParams();
 
@@ -143,9 +149,14 @@
             await val.ref.wait();
           }
           const duration = performance.now() - startTime;
+          const lossNumber = (await lossVal.jsAsync()) as number;
           log(
-            `batch ${i}/${numBatches} completed in ${duration.toFixed(1)} ms, loss: ${((await lossVal.jsAsync()) as number).toFixed(4)}`,
+            `batch ${i}/${numBatches} completed in ${duration.toFixed(1)} ms, loss: ${lossNumber.toFixed(4)}`,
           );
+          trainMetrics.push({
+            iteration: epoch * numBatches + i + 1,
+            loss: lossNumber,
+          });
         }
 
         log(`=> Evaluating on test set...`);
@@ -177,6 +188,11 @@
         log(
           `=> Test acc: ${testAccAvg.toFixed(4)}, loss: ${testLossAvg.toFixed(4)}`,
         );
+        testMetrics.push({
+          epoch: epoch + 1,
+          loss: testLossAvg,
+          acc: testAccAvg,
+        });
       }
     } finally {
       X_train.dispose();
@@ -197,22 +213,40 @@
   <h1 class="text-2xl mb-2">mnist + jax-js</h1>
 
   <p class="mb-2">
-    Let's try to train a neural network to classify MNIST digits, in your
-    browser.
+    Let's try and train a neural network to classify MNIST digits, in your
+    browser with <code>jax-js</code>.
   </p>
 
   <p class="mb-2">Note: This is pretty scuffed right now. To do:</p>
 
   <ul class="list-disc pl-6 mb-4">
-    <li>Weight initialization (currently very bad, sines and not random)</li>
-    <li>Optimizer to implement Adam, naive SGD with bad LR</li>
-    <li>Make output better and have charts</li>
+    <li>Weight initialization (currently sucks a lot, makes model bad)</li>
+    <li>Implement Adam</li>
     <li>Convolutional layers</li>
-    <li>Improved JIT to be less inefficient</li>
-    <li>Interactive live views of data + inference demo</li>
+    <li>Make JIT less inefficient</li>
+    <li>Live views of data + inference demo</li>
   </ul>
 
   <button onclick={run}>Run</button>
+
+  <div class="grid md:grid-cols-2 gap-4 my-6">
+    <div class="h-[220px] border border-gray-400 rounded">
+      <LineChart
+        title="Train Loss"
+        data={trainMetrics}
+        x="iteration"
+        y="loss"
+      />
+    </div>
+    <div class="h-[220px] border border-gray-400 rounded">
+      <LineChart
+        title="Test Loss & Accuracy"
+        data={testMetrics}
+        x="epoch"
+        y={["loss", "acc"]}
+      />
+    </div>
+  </div>
 
   <div
     class="font-mono text-sm bg-gray-900 px-4 py-2 h-[600px] overflow-y-scroll mt-8"

@@ -19,6 +19,8 @@
     "@sveltejs/kit": "^2.17.2",
     "@sveltejs/vite-plugin-svelte": "^5.0.3",
     "@tailwindcss/vite": "^4.0.8",
+    "@types/d3-array": "^3.2.1",
+    "@types/d3-scale-chromatic": "^3.1.0",
     "@types/prettier": "^2.7.3",
     "@vitejs/plugin-basic-ssl": "^2.0.0",
     "eslint": "^9.21.0",
@@ -35,10 +37,13 @@
   },
   "dependencies": {
     "@jax-js/jax": "file:../",
+    "@observablehq/plot": "^0.6.17",
     "@rich_harris/svelte-split-pane": "^2.0.0",
     "@rollup/browser": "^4.34.8",
     "@tensorflow/tfjs": "^4.22.0",
     "@tensorflow/tfjs-backend-webgpu": "^4.22.0",
+    "d3-array": "^3.2.4",
+    "d3-scale-chromatic": "^3.1.0",
     "lucide-svelte": "^0.475.0",
     "monaco-editor": "^0.52.2",
     "svelte": "^5.20.2"
