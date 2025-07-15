@@ -734,8 +734,10 @@ export const abstractEvalRules: { [P in Primitive]: AbstractEvalRule<P> } = {
   },
   [Primitive.Gather]([x, ...indices], { axis, outDim }) {
     for (const a of indices)
-      if (a.dtype !== DType.Int32)
-        throw new TypeError(`Gather indices must be Int32, got ${a.dtype}`);
+      if (a.dtype !== DType.Int32 && a.dtype !== DType.Uint32)
+        throw new TypeError(
+          `Gather indices must be Int32 or Uint32, got ${a.dtype}`,
+        );
     if (axis.length !== indices.length)
       throw new TypeError(`Gather: ${axis} axes but ${indices.length} indices`);
     if (indices.length === 0)

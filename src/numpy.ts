@@ -35,6 +35,7 @@ export {
 
 export const float32 = DType.Float32;
 export const int32 = DType.Int32;
+export const uint32 = DType.Uint32;
 export const bool = DType.Bool;
 export const complex64 = DType.Complex64;
 

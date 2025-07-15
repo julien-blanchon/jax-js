@@ -1,4 +1,4 @@
-import { AluExp, AluGroup, AluOp, DType, Kernel } from "../alu";
+import { AluExp, AluGroup, AluOp, DType, isFloatDtype, Kernel } from "../alu";
 import { Backend, Device, Executable, Slot, SlotError } from "../backend";
 import { tuneWebgpu } from "../tuner";
 import { DEBUG, findPow2, FpHash, strip1 } from "../utils";
@@ -184,6 +184,8 @@ function dtypeToWgsl(dtype: DType, storage: boolean = false): string {
       return storage ? "i32" : "bool"; // WebGPU does not support bools in buffers.
     case DType.Int32:
       return "i32";
+    case DType.Uint32:
+      return "u32"; // WebGPU supports uint32 in buffers.
     case DType.Float32:
       return "f32";
     default:
@@ -194,6 +196,7 @@ function dtypeToWgsl(dtype: DType, storage: boolean = false): string {
 function constToWgsl(dtype: DType, value: any): string {
   if (dtype === DType.Bool) return value ? "true" : "false";
   if (dtype === DType.Int32) return value.toString();
+  if (dtype === DType.Uint32) return value.toString() + "u"; // WebGPU uses 'u' suffix for uint32.
   if (dtype === DType.Float32) {
     if (Number.isNaN(value)) return "nan()";
     if (!Number.isFinite(value)) return value > 0 ? "inf()" : "-inf()";
@@ -330,7 +333,7 @@ function pipelineSource(device: GPUDevice, kernel: Kernel): ShaderInfo {
         if (dtype === DType.Bool) source = `(${a} && ${b})`;
         else source = `(${a} * ${b})`;
       } else if (op === AluOp.Idiv)
-        source = dtype === DType.Int32 ? `(${a} / ${b})` : `floor(${a} / ${b})`;
+        source = isFloatDtype(dtype) ? `floor(${a} / ${b})` : `(${a} / ${b})`;
       else if (op === AluOp.Mod) source = `(${a} % ${b})`;
       else if (op === AluOp.Min) source = `min(${strip1(a)}, ${strip1(b)})`;
       else if (op === AluOp.Max) source = `max(${strip1(a)}, ${strip1(b)})`;

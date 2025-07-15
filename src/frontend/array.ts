@@ -570,7 +570,7 @@ export class Array extends Tracer {
     }
   }
 
-  #dataInline(): Float32Array | Int32Array {
+  #dataInline(): Float32Array | Int32Array | Uint32Array {
     this.#check();
     const exp = this.#source as AluExp;
     const ar = new Array(exp, this.#st, this.dtype, getBackend("cpu"));
@@ -593,7 +593,7 @@ export class Array extends Tracer {
   }
 
   /** Realize the array and return it as data. */
-  async data(): Promise<Float32Array | Int32Array> {
+  async data(): Promise<Float32Array | Int32Array | Uint32Array> {
     if (
       this.#source instanceof AluExp &&
       prod(this.shape) < inlineArrayLimit &&
@@ -614,7 +614,9 @@ export class Array extends Tracer {
     this.dispose();
     return this.dtype === DType.Float32
       ? new Float32Array(buf)
-      : new Int32Array(buf);
+      : this.dtype === DType.Uint32
+        ? new Uint32Array(buf)
+        : new Int32Array(buf);
   }
 
   /** Wait for this array to be placed on the backend, if needed. */
@@ -635,7 +637,7 @@ export class Array extends Tracer {
    * Realize the array and return it as data. This is a sync variant and not
    * recommended for performance reasons, as it will block rendering.
    */
-  dataSync(): Float32Array | Int32Array {
+  dataSync(): Float32Array | Int32Array | Uint32Array {
     if (
       this.#source instanceof AluExp &&
       prod(this.shape) < inlineArrayLimit &&
@@ -654,7 +656,9 @@ export class Array extends Tracer {
     this.dispose();
     return this.dtype === DType.Float32
       ? new Float32Array(buf)
-      : new Int32Array(buf);
+      : this.dtype === DType.Uint32
+        ? new Uint32Array(buf)
+        : new Int32Array(buf);
   }
 
   /**
@@ -797,11 +801,11 @@ export function scalar(
   // TODO: This should probably be merged with numpy.full().
   if (typeof value === "number") {
     dtype ??= DType.Float32; // default dtype for JS numbers
-    if (![DType.Float32, DType.Int32].includes(dtype))
+    if (![DType.Float32, DType.Int32, DType.Uint32].includes(dtype))
       throw new TypeError(`Mismatched dtype for scalar ${value}`);
   } else if (typeof value === "boolean") {
     dtype ??= DType.Bool;
-    if (![DType.Float32, DType.Int32, DType.Bool].includes(dtype))
+    if (![DType.Float32, DType.Int32, DType.Uint32, DType.Bool].includes(dtype))
       throw new TypeError(`Mismatched dtype for scalar ${value}`);
   } else {
     throw new TypeError(`Invalid type for scalar ${value}`);
@@ -865,14 +869,16 @@ export function array(
       const data =
         dtype === DType.Int32
           ? new Int32Array(flat as number[])
-          : new Float32Array(flat as number[]);
+          : dtype === DType.Uint32
+            ? new Uint32Array(flat as number[])
+            : new Float32Array(flat as number[]);
       return arrayFromData(data, shape, { dtype, device });
     }
   }
 }
 
 function arrayFromData(
-  data: Float32Array | Int32Array,
+  data: Float32Array | Int32Array | Uint32Array,
   shape: number[],
   { dtype, device }: DTypeAndDevice = {},
 ): Array {
@@ -914,6 +920,17 @@ function arrayFromData(
       dtype ?? DType.Int32,
       backend,
     );
+  } else if (data instanceof Uint32Array) {
+    if (dtype && dtype !== DType.Uint32) {
+      throw new Error("Uint32Array must have uint32 type");
+    }
+    const slot = backend.malloc(data.byteLength, data.buffer);
+    return new Array(
+      slot,
+      ShapeTracker.fromShape(shape),
+      DType.Uint32,
+      backend,
+    );
   } else {
     throw new Error("Unsupported data type");
   }
@@ -921,7 +938,7 @@ function arrayFromData(
 
 function dataToJs(
   dtype: DType,
-  data: Float32Array | Int32Array,
+  data: Float32Array | Int32Array | Uint32Array,
   shape: number[],
 ): RecursiveArray<number> | RecursiveArray<boolean> | any {
   if (shape.length === 0) {

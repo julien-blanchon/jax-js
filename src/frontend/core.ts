@@ -1,6 +1,6 @@
 /** @file Core library internals and interpreter stack, based on Autodidax. */
 
-import { AluGroup, AluOp, DType } from "../alu";
+import { AluGroup, AluOp, DType, isFloatDtype } from "../alu";
 import {
   JsTreeDef,
   flatten as treeFlatten,
@@ -510,10 +510,10 @@ export abstract class Tracer {
 
   /** Divide an array by this one. */
   div(other: this | TracerValue): this {
-    if (this.dtype === DType.Int32) {
-      return idiv(this, other) as this;
+    if (isFloatDtype(this.dtype)) {
+      return this.mul(reciprocal(other));
     }
-    return this.mul(reciprocal(other));
+    return idiv(this, other) as this;
   }
 
   /** Return specified diagonals. See `numpy.diagonal` for full docs. */

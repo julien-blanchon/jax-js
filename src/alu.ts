@@ -5,6 +5,7 @@ import { clamp, FpHash, FpHashable, strip1 } from "./utils";
 export enum DType {
   Float32 = "float32",
   Int32 = "int32",
+  Uint32 = "uint32",
   Bool = "bool",
   Complex64 = "complex64", // TODO: unimplemented
 }
@@ -88,7 +89,9 @@ export class AluExp implements FpHashable {
     if (dtype === DType.Bool) {
       value = Number(Boolean(value));
     } else if (dtype === DType.Int32) {
-      value = Math.trunc(value);
+      value = Math.trunc(value) | 0;
+    } else if (dtype === DType.Uint32) {
+      value = Math.trunc(value) >>> 0;
     }
     if (typeof value !== "number") {
       throw new TypeError(
@@ -117,6 +120,9 @@ export class AluExp implements FpHashable {
 
   static i32(value: number): AluExp {
     return AluExp.const(DType.Int32, value);
+  }
+  static u32(value: number): AluExp {
+    return AluExp.const(DType.Uint32, value);
   }
   static f32(value: number): AluExp {
     return AluExp.const(DType.Float32, value);
@@ -269,6 +275,16 @@ export class AluExp implements FpHashable {
           ret = mustBeZero ? [0, 0] : canBeZero ? [0, 1] : [1, 1];
         } else if (this.dtype === DType.Int32) {
           ret = [Math.trunc(src[0].min), Math.trunc(src[0].max)];
+        } else if (this.dtype === DType.Uint32) {
+          const a = Math.trunc(src[0].min);
+          const b = Math.trunc(src[0].max);
+          // If a and b belong to different segments of length 2^32...
+          if (Math.floor(a / 2 ** 32) !== Math.floor(b / 2 ** 32)) {
+            // ...then we return the full range of uint32.
+            ret = [0, -1 >>> 0];
+          } else {
+            ret = [a % 2 ** 32, b % 2 ** 32];
+          }
         } else {
           ret = [src[0].min, src[0].max];
         }
@@ -315,7 +331,10 @@ export class AluExp implements FpHashable {
   }
 
   #isConstInt(): boolean {
-    return this.op === AluOp.Const && this.dtype === DType.Int32;
+    return (
+      this.op === AluOp.Const &&
+      (this.dtype === DType.Int32 || this.dtype === DType.Uint32)
+    );
   }
 
   /**
@@ -560,7 +579,8 @@ export class AluExp implements FpHashable {
         case AluOp.Reciprocal:
           return 1 / x;
         case AluOp.Cast:
-          if (this.dtype === DType.Int32) return Math.floor(x);
+          if (this.dtype === DType.Int32) return Math.trunc(x) | 0;
+          else if (this.dtype === DType.Uint32) return Math.trunc(x) >>> 0;
           else if (this.dtype === DType.Float32) return x;
           else if (this.dtype === DType.Bool) return Number(Boolean(x));
           else throw new Error(`Unsupported cast to ${this.dtype}`);
@@ -880,6 +900,11 @@ export class Reduction implements FpHashable {
       else if (this.op === AluOp.Mul) return 1;
       else if (this.op === AluOp.Min) return -1 >>> 1;
       else if (this.op === AluOp.Max) return 1 << 31;
+    } else if (this.dtype === DType.Uint32) {
+      if (this.op === AluOp.Add) return 0;
+      else if (this.op === AluOp.Mul) return 1;
+      else if (this.op === AluOp.Min) return -1 >>> 0;
+      else if (this.op === AluOp.Max) return 0;
     } else if (this.dtype === DType.Float32) {
       if (this.op === AluOp.Add) return 0;
       else if (this.op === AluOp.Mul) return 1;
@@ -909,6 +934,19 @@ export class Reduction implements FpHashable {
         );
       } else if (this.op === AluOp.Max) {
         return values.reduce((a: number, b: number) => Math.max(a, b), 1 << 31);
+      }
+    } else if (this.dtype === DType.Uint32) {
+      if (this.op === AluOp.Add) {
+        return values.reduce((a: number, b: number) => (a + b) >>> 0, 0);
+      } else if (this.op === AluOp.Mul) {
+        return values.reduce((a: number, b: number) => (a * b) >>> 0, 1);
+      } else if (this.op === AluOp.Min) {
+        return values.reduce(
+          (a: number, b: number) => Math.min(a, b),
+          -1 >>> 0,
+        );
+      } else if (this.op === AluOp.Max) {
+        return values.reduce((a: number, b: number) => Math.max(a, b), 0);
       }
     } else if (this.dtype === DType.Float32) {
       if (this.op === AluOp.Add) {
