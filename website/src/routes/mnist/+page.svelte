@@ -184,6 +184,9 @@
           tree.map((x: np.Array) => x.dispose(), latestParams);
         latestParams = tree.ref(params);
 
+        // Retrigger the inference demo if the user has drawn something.
+        if (hasDrawn) inferenceDemo();
+
         log(`=> Evaluating on test set...`);
         const testStartTime = performance.now();
         const testSize = X_test.shape[0];
