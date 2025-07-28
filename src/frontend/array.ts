@@ -693,7 +693,7 @@ export class Array extends Tracer {
    * either be rank-0, or all dimensions of the shape are 1.
    */
   item(): number {
-    if (this.size !== -1) {
+    if (this.size !== 1) {
       throw new Error(`item() can only be called on arrays of size 1`);
     }
     return this.dataSync()[0];

@@ -31,7 +31,7 @@ export function scaleByAdam({
   eps = 1e-8,
   epsRoot = 0.0,
   nesterov = false,
-}: ScaleByAdamOptions): GradientTransformation {
+}: ScaleByAdamOptions = {}): GradientTransformation {
   return {
     init(params) {
       const mu = treeZerosLike(params); // first moment

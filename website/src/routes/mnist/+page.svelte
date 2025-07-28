@@ -9,6 +9,7 @@
     tree,
     valueAndGrad,
   } from "@jax-js/jax";
+  import { adam, applyUpdates } from "@jax-js/optax";
   import pThrottle from "p-throttle";
   import { onMount } from "svelte";
 
@@ -26,9 +27,9 @@
   }
 
   type Params = {
-    w1: np.Array; // [784, 512]
-    b1: np.Array; // [512]
-    w2: np.Array; // [512, 128]
+    w1: np.Array; // [784, 256]
+    b1: np.Array; // [256]
+    w2: np.Array; // [256, 128]
     b2: np.Array; // [128]
     w3: np.Array; // [128, 10]
     b3: np.Array; // [10]
@@ -36,21 +37,21 @@
 
   async function initializeParams(): Promise<Params> {
     const [k11, k12, k21, k22, k31, k32] = random.split(random.key(0), 6);
-    const w1 = random.uniform(k11, [784, 512], {
+    const w1 = random.uniform(k11, [784, 256], {
       minval: -1 / Math.sqrt(784),
       maxval: 1 / Math.sqrt(784),
     });
-    const b1 = random.uniform(k12, [512], {
+    const b1 = random.uniform(k12, [256], {
       minval: -1 / Math.sqrt(784),
       maxval: 1 / Math.sqrt(784),
     });
-    const w2 = random.uniform(k21, [512, 128], {
-      minval: -1 / Math.sqrt(512),
-      maxval: 1 / Math.sqrt(512),
+    const w2 = random.uniform(k21, [256, 128], {
+      minval: -1 / Math.sqrt(256),
+      maxval: 1 / Math.sqrt(256),
     });
     const b2 = random.uniform(k22, [128], {
-      minval: -1 / Math.sqrt(512),
-      maxval: 1 / Math.sqrt(512),
+      minval: -1 / Math.sqrt(256),
+      maxval: 1 / Math.sqrt(256),
     });
     const w3 = random.uniform(k31, [128, 10], {
       minval: -1 / Math.sqrt(128),
@@ -127,7 +128,9 @@
     const duration = performance.now() - startTime;
     log(`=> Data loaded in ${duration.toFixed(1)} ms`);
 
-    const lr = 5e-2;
+    const solver = adam(1e-3);
+    let optState = solver.init(tree.ref(params));
+    let updates: Params;
 
     try {
       const batchSize = 1000;
@@ -160,11 +163,8 @@
             X,
             y,
           );
-          params = tree.map(
-            (a: np.Array, b: np.Array) => a.add(b.mul(-lr)),
-            params,
-            lossGrad,
-          );
+          [updates, optState] = solver.update(lossGrad, optState);
+          params = applyUpdates(params, updates);
           for (const val of Object.values(params)) {
             await val.ref.wait();
           }
@@ -266,6 +266,7 @@
   let hasDrawn = $state(false);
   let drawing = false;
   let lastPos = [0, 0];
+  const lineWidth = 28;
 
   function coords(event: PointerEvent): [number, number] {
     const rect = canvas.getBoundingClientRect();
@@ -281,7 +282,7 @@
     drawing = true;
     ctx.fillStyle = "black";
     ctx.beginPath();
-    ctx.ellipse(x, y, 15, 15, 0, 0, Math.PI * 2);
+    ctx.ellipse(x, y, lineWidth / 2, lineWidth / 2, 0, 0, Math.PI * 2);
     ctx.fill();
     lastPos = [x, y];
     hasDrawn = true;
@@ -295,7 +296,7 @@
     ctx.beginPath();
     ctx.moveTo(lastPos[0], lastPos[1]);
     ctx.lineTo(x, y);
-    ctx.lineWidth = 30;
+    ctx.lineWidth = lineWidth;
     ctx.lineCap = "round";
     ctx.stroke();
     lastPos = [x, y];
@@ -315,22 +316,30 @@
 </script>
 
 <main class="p-4">
-  <h1 class="text-2xl mb-2">mnist + jax-js</h1>
+  <section class="max-w-3xl">
+    <h1 class="text-2xl mb-4">mnist + jax-js</h1>
 
-  <p class="mb-2">
-    Let's try and train a neural network to classify MNIST digits, in your
-    browser with <code>jax-js</code>.
-  </p>
+    <p class="mb-4">
+      Let's train a neural network to classify MNIST digits, in your browser
+      with <code>jax-js</code>.
+    </p>
 
-  <p class="mb-2">Note: This is pretty scuffed right now. To do:</p>
+    <p class="mb-4">
+      The neural network is a fully-connected, 3-layer neural network trained
+      with Adam(lr=0.001). Each epoch has 60 randomized batches, with 1000
+      images each.
+    </p>
 
-  <ul class="list-disc pl-6 mb-4">
-    <li>Implement Adam</li>
-    <li>Convolutional layers</li>
-    <li>Make JIT less inefficient</li>
-  </ul>
+    <p class="mb-4 text-sm">
+      Note: This demo requires a <a
+        class="underline"
+        target="_blank"
+        href="https://browserleaks.com/webgpu">WebGPU</a
+      >-enabled browser. Works best on Chrome.
+    </p>
 
-  <button onclick={run}>Run</button>
+    <button onclick={run}>Run</button>
+  </section>
 
   <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4 my-6">
     <div class="h-[220px] border border-gray-400 rounded">

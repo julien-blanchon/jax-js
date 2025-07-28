@@ -15,7 +15,7 @@ export function sgd(learningRate: ScalarOrSchedule): GradientTransformation {
 /** The Adam optimizer. */
 export function adam(
   learningRate: ScalarOrSchedule,
-  opts: ScaleByAdamOptions,
+  opts?: ScaleByAdamOptions,
 ): GradientTransformation {
   return chain(scaleByAdam(opts), scaleByLearningRate(learningRate));
 }

@@ -200,9 +200,7 @@ function constToWgsl(dtype: DType, value: any): string {
   if (dtype === DType.Float32) {
     if (Number.isNaN(value)) return "nan()";
     if (!Number.isFinite(value)) return value > 0 ? "inf()" : "-inf()";
-    let s = value.toString();
-    if (!s.includes(".")) s += ".0";
-    return s;
+    return "f32(" + value.toString() + ")";
   }
   throw new Error(`Unsupported const dtype: ${dtype}`);
 }
