@@ -759,7 +759,7 @@ export class AluExp implements FpHashable {
         return globals(gid, bufidx);
       }
       case AluOp.GlobalView: {
-        // Note: This branch is very slow.
+        // Note: This branch is very slow. It should be lowered before evaluation.
         if (!globals) throw new Error("Missing globals function");
         const gid: number = this.arg[0];
         const st: ShapeTracker = this.arg[1];

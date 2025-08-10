@@ -10,6 +10,7 @@
     valueAndGrad,
   } from "@jax-js/jax";
   import { adam, applyUpdates } from "@jax-js/optax";
+  import { range, shuffle } from "es-toolkit";
   import pThrottle from "p-throttle";
   import { onMount } from "svelte";
 
@@ -139,17 +140,7 @@
       const numBatches = Math.ceil(X_train.shape[0] / batchSize);
       for (let epoch = 0; epoch < 10; epoch++) {
         log(`=> Epoch ${epoch + 1}`);
-        const randomIndices = [];
-        for (let i = 0; i < X_train.shape[0]; i++) {
-          randomIndices.push(i);
-        }
-        for (let i = randomIndices.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [randomIndices[i], randomIndices[j]] = [
-            randomIndices[j],
-            randomIndices[i],
-          ];
-        }
+        const randomIndices = shuffle(range(X_train.shape[0]));
 
         for (let i = 0; i < numBatches; i++) {
           const indices = np.array(

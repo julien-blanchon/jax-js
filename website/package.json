@@ -45,6 +45,7 @@
     "@tensorflow/tfjs-backend-webgpu": "^4.22.0",
     "d3-array": "^3.2.4",
     "d3-scale-chromatic": "^3.1.0",
+    "es-toolkit": "^1.39.8",
     "lucide-svelte": "^0.475.0",
     "monaco-editor": "^0.52.2",
     "p-throttle": "^7.0.0",
