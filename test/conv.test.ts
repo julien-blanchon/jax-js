@@ -115,7 +115,7 @@ suite.each(devices)("device:%s", (device) => {
     expect(dy.slice(0, 0).js()).toEqual([3, 4, 5]);
   });
 
-  test.only("grad shape test with stride 2", () => {
+  test("grad shape test with stride 2", () => {
     const f = (x: np.Array, y: np.Array) =>
       lax.convGeneralDilated(x, y, [2, 2], "VALID").sum();
     const g = (y: np.Array, x: np.Array) =>
