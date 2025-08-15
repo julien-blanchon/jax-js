@@ -2,6 +2,7 @@
   import {
     init,
     jit,
+    lax,
     nn,
     numpy as np,
     random,
@@ -19,76 +20,117 @@
 
   let logs = $state<string[]>([]);
 
-  let trainMetrics = $state<{ iteration: number; loss: number }[]>([]);
-  let testMetrics = $state<{ epoch: number; loss: number; acc: number }[]>([]);
-
   function log(msg: string) {
     logs.push(msg);
     console.log(msg);
   }
 
-  type Params = {
-    w1: np.Array; // [784, 256]
-    b1: np.Array; // [256]
-    w2: np.Array; // [256, 128]
-    b2: np.Array; // [128]
-    w3: np.Array; // [128, 10]
-    b3: np.Array; // [10]
+  type Params = { [key: string]: np.Array };
+  type ModelType = {
+    init(key: np.Array): Params;
+    predict(params: Params, x: np.Array): np.Array;
   };
 
-  async function initializeParams(): Promise<Params> {
-    const [k11, k12, k21, k22, k31, k32] = random.split(random.key(0), 6);
-    const w1 = random.uniform(k11, [784, 256], {
-      minval: -1 / Math.sqrt(784),
-      maxval: 1 / Math.sqrt(784),
-    });
-    const b1 = random.uniform(k12, [256], {
-      minval: -1 / Math.sqrt(784),
-      maxval: 1 / Math.sqrt(784),
-    });
-    const w2 = random.uniform(k21, [256, 128], {
-      minval: -1 / Math.sqrt(256),
-      maxval: 1 / Math.sqrt(256),
-    });
-    const b2 = random.uniform(k22, [128], {
-      minval: -1 / Math.sqrt(256),
-      maxval: 1 / Math.sqrt(256),
-    });
-    const w3 = random.uniform(k31, [128, 10], {
-      minval: -1 / Math.sqrt(128),
-      maxval: 1 / Math.sqrt(128),
-    });
-    const b3 = random.uniform(k32, [10], {
-      minval: -1 / Math.sqrt(128),
-      maxval: 1 / Math.sqrt(128),
-    });
-    const params = { w1, b1, w2, b2, w3, b3 };
-    // Wait for all the arrays to be created on the device.
-    await Promise.all(tree.leaves(params).map((ar) => ar.ref.wait()));
-    return params;
-  }
+  const MLP: ModelType = {
+    init(key: np.Array): Params {
+      const [d0, d1, d2, d3] = [784, 256, 128, 10]; // Hidden layer dimensions
+      const [k11, k12, k21, k22, k31, k32] = random.split(key, 6);
+      const w1 = random.uniform(k11, [d0, d1], {
+        minval: -1 / Math.sqrt(d0),
+        maxval: 1 / Math.sqrt(d0),
+      });
+      const b1 = random.uniform(k12, [d1], {
+        minval: -1 / Math.sqrt(d0),
+        maxval: 1 / Math.sqrt(d0),
+      });
+      const w2 = random.uniform(k21, [d1, d2], {
+        minval: -1 / Math.sqrt(d1),
+        maxval: 1 / Math.sqrt(d1),
+      });
+      const b2 = random.uniform(k22, [d2], {
+        minval: -1 / Math.sqrt(d1),
+        maxval: 1 / Math.sqrt(d1),
+      });
+      const w3 = random.uniform(k31, [d2, d3], {
+        minval: -1 / Math.sqrt(d2),
+        maxval: 1 / Math.sqrt(d2),
+      });
+      const b3 = random.uniform(k32, [d3], {
+        minval: -1 / Math.sqrt(d2),
+        maxval: 1 / Math.sqrt(d2),
+      });
+      return { w1, b1, w2, b2, w3, b3 };
+    },
 
-  function predict(params: Params, x: np.Array): np.Array {
-    // Forward pass through the network
-    x = x.reshape([-1, 784]);
-    const z1 = np.dot(x, params.w1).add(params.b1);
-    const a1 = nn.relu(z1);
-    const z2 = np.dot(a1, params.w2).add(params.b2);
-    const a2 = nn.relu(z2);
-    const z3 = np.dot(a2, params.w3).add(params.b3);
-    return nn.logSoftmax(z3);
-  }
+    predict: jit((params: Params, x: np.Array): np.Array => {
+      // Forward pass through the network
+      x = x.reshape([-1, 784]);
+      const z1 = np.dot(x, params.w1).add(params.b1);
+      const a1 = nn.relu(z1);
+      const z2 = np.dot(a1, params.w2).add(params.b2);
+      const a2 = nn.relu(z2);
+      const z3 = np.dot(a2, params.w3).add(params.b3);
+      return nn.logSoftmax(z3);
+    }),
+  };
 
-  const predictJit = jit(predict);
+  const ConvNet: ModelType = {
+    init(key: np.Array): Params {
+      const [k11, k12, k21, k22, k31, k32] = random.split(key, 6);
+      const w1 = random.uniform(k11, [32, 1, 5, 5], {
+        minval: -1 / Math.sqrt(5 * 5),
+        maxval: 1 / Math.sqrt(5 * 5),
+      });
+      const b1 = random.uniform(k12, [32, 1, 1], {
+        minval: -1 / Math.sqrt(5 * 5),
+        maxval: 1 / Math.sqrt(5 * 5),
+      });
+      const w2 = random.uniform(k21, [64, 32, 3, 3], {
+        minval: -1 / Math.sqrt(32 * 3 * 3),
+        maxval: 1 / Math.sqrt(32 * 3 * 3),
+      });
+      const b2 = random.uniform(k22, [64, 1, 1], {
+        minval: -1 / Math.sqrt(32 * 3 * 3),
+        maxval: 1 / Math.sqrt(32 * 3 * 3),
+      });
+      const w3 = random.uniform(k31, [1600, 10], {
+        minval: -1 / Math.sqrt(1600),
+        maxval: 1 / Math.sqrt(1600),
+      });
+      const b3 = random.uniform(k32, [10], {
+        minval: -1 / Math.sqrt(1600),
+        maxval: 1 / Math.sqrt(1600),
+      });
+      return { w1, b1, w2, b2, w3, b3 };
+    },
 
-  function loss(params: Params, x: np.Array, y: np.Array): np.Array {
-    // Compute the negative log-likelihood loss
-    const batchSize = y.shape[0];
-    const logits = predictJit(params, x);
-    return logits
-      .mul(nn.oneHot(y, 10))
-      .sum()
-      .mul(-1 / batchSize);
+    predict: jit((params: Params, x: np.Array): np.Array => {
+      // Forward pass through the network
+      x = x.reshape([-1, 1, 28, 28]);
+      const z1 = lax
+        .convGeneralDilated(x, params.w1, [2, 2], "VALID")
+        .add(params.b1);
+      const a1 = nn.relu(z1); // [batch, 32, 12, 12]
+      const z2 = lax
+        .convGeneralDilated(a1, params.w2, [2, 2], "VALID")
+        .add(params.b2);
+      const a2 = nn.relu(z2); // [batch, 64, 5, 5]
+      const a2flat = a2.reshape([-1, 1600]); // Flatten to [batch, 1600]
+      const z3 = np.dot(a2flat, params.w3).add(params.b3);
+      return nn.logSoftmax(z3);
+    }),
+  };
+
+  function lossFn(predict: (params: Params, x: np.Array) => np.Array) {
+    return (params: Params, x: np.Array, y: np.Array): np.Array => {
+      // Compute the negative log-likelihood loss
+      const batchSize = y.shape[0];
+      const logits = predict(params, x);
+      return logits
+        .mul(nn.oneHot(y, 10))
+        .sum()
+        .mul(-1 / batchSize);
+    };
   }
 
   async function loadData(): Promise<{
@@ -112,15 +154,49 @@
     };
   }
 
+  let trainMetrics = $state<{ iteration: number; loss: number }[]>([]);
+  let testMetrics = $state<{ epoch: number; loss: number; acc: number }[]>([]);
+
   let latestParams: Params | null = null;
   let probs: number[] = $state.raw([]);
+  let running = $state(false);
+  let stopping = false;
+
+  let Model: ModelType = undefined!; // Initialized in $effect below.
+  let batchSize: number = undefined!;
+
+  let selectedModel = $state("MLP");
+  $effect(() => changeModelType(selectedModel));
+
+  function changeModelType(modelType: string) {
+    if (running) return;
+    switch (modelType) {
+      case "MLP":
+        Model = MLP;
+        batchSize = 1000;
+        break;
+      case "ConvNet":
+        Model = ConvNet;
+        batchSize = 200;
+        break;
+      default:
+        throw new Error(`Unknown model type: ${modelType}`);
+    }
+    tree.dispose(latestParams);
+    latestParams = null;
+  }
 
   async function run() {
+    running = true;
+    stopping = false;
     logs = [];
     trainMetrics = [];
     testMetrics = [];
 
-    let params = await initializeParams();
+    let params = Model.init(random.key(0));
+    await Promise.all(tree.leaves(params).map((ar) => ar.ref.wait()));
+
+    const loss = lossFn(Model.predict);
 
     tree.dispose(latestParams);
     latestParams = tree.ref(params);
@@ -136,13 +212,13 @@
     let updates: Params;
 
     try {
-      const batchSize = 1000;
       const numBatches = Math.ceil(X_train.shape[0] / batchSize);
       for (let epoch = 0; epoch < 10; epoch++) {
         log(`=> Epoch ${epoch + 1}`);
         const randomIndices = shuffle(range(X_train.shape[0]));
 
         for (let i = 0; i < numBatches; i++) {
+          if (stopping) break;
           const indices = np.array(
             randomIndices.slice(i * batchSize, (i + 1) * batchSize),
             { dtype: np.int32 },
@@ -178,6 +254,8 @@
         // Retrigger the inference demo if the user has drawn something.
         if (hasDrawn) inferenceDemo();
 
+        if (stopping) break;
+
         log(`=> Evaluating on test set...`);
         const testStartTime = performance.now();
         const testSize = X_test.shape[0];
@@ -189,7 +267,7 @@
           testLoss.push(await loss(tree.ref(params), X.ref, y.ref).jsAsync());
           testAcc.push(
             await np
-              .argmax(predictJit(tree.ref(params), X), 1)
+              .argmax(Model.predict(tree.ref(params), X), 1)
               .equal(y)
               .astype(np.uint32)
               .sum()
@@ -214,7 +292,12 @@
       X_test.dispose();
       y_test.dispose();
       tree.dispose(params);
+      running = false;
     }
+  }
+
+  function stop() {
+    stopping = true;
   }
 
   onMount(async () => {
@@ -291,7 +374,7 @@
     const params = tree.ref(latestParams);
     let image = np.array(ar).reshape([28, 28]);
     image = normalizeImage(image); // Mimic the MNIST train set preprocessing.
-    const logits = predictJit(params, image.reshape([1, 28, 28]));
+    const logits = Model.predict(params, image.reshape([1, 28, 28]));
     probs = (await np.exp(logits).slice(0).jsAsync()) as number[];
   });
 
@@ -349,6 +432,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>mnist + jax-js</title>
+</svelte:head>
+
 <main class="p-4">
   <section class="max-w-3xl">
     <h1 class="text-2xl mb-4">mnist + jax-js</h1>
@@ -359,9 +446,9 @@
     </p>
 
     <p class="mb-4">
-      The model is a fully-connected, 3-layer neural network trained with
-      Adam(lr=0.001). Each epoch has 60 randomized batches, with 1000 images
-      each.
+      The model is a 3-layer MLP or convolutional neural network trained with
+      Adam(lr=0.001). Each epoch has 60 (MLP) or 300 (ConvNet) randomized
+      batches, with 60,000 images in total in the train set.
     </p>
 
     <p class="mb-4 text-sm">
@@ -372,7 +459,21 @@
       >-enabled browser. Works best on Chrome.
     </p>
 
-    <button onclick={run}>Run</button>
+    <div class="flex gap-2">
+      <select
+        bind:value={selectedModel}
+        onchange={() => changeModelType(selectedModel)}
+        disabled={running}
+      >
+        <option value="MLP">MLP</option>
+        <option value="ConvNet">ConvNet</option>
+      </select>
+      {#if !running}
+        <button onclick={run}>Run</button>
+      {:else}
+        <button onclick={stop}>Stop</button>
+      {/if}
+    </div>
   </section>
 
   <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4 my-6">
@@ -462,5 +563,9 @@
 
   button {
     @apply border px-2 hover:bg-gray-100 active:scale-95;
+  }
+
+  select {
+    @apply border px-1 text-sm;
   }
 </style>
