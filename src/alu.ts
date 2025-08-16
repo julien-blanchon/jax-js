@@ -606,6 +606,33 @@ export class AluExp implements FpHashable {
       }
     }
 
+    // Heuristic: Bias toward moving consts outward and to the right.
+    // - A + x -> x + A
+    // - x + (y + A) -> (x + y) + A
+    // - (x + A) + y -> (x + y) + A
+    // - (x + A) + B -> x + (A + B)
+    const commOps = [AluOp.Add, AluOp.Mul, AluOp.Max, AluOp.Min];
+    if (commOps.includes(op)) {
+      const p = (a: AluExp, b: AluExp) => new AluExp(op, this.dtype, [a, b]);
+      if (src[0].op === AluOp.Const) {
+        // A + x -> x + A
+        return p(src[1], src[0]).simplify(cache);
+      }
+      if (src[0].op === op && src[0].src[1].op === AluOp.Const) {
+        if (src[1].op === AluOp.Const) {
+          // (x + A) + B -> x + (A + B)
+          return p(src[0].src[0], p(src[0].src[1], src[1])).simplify(cache);
+        } else {
+          // (x + A) + y -> (x + y) + A
+          return p(p(src[0].src[0], src[1]), src[0].src[1]).simplify(cache);
+        }
+      }
+      if (src[1].op === op && src[1].src[1].op === AluOp.Const) {
+        // x + (y + A) -> (x + y) + A
+        return p(p(src[0], src[1].src[0]), src[1].src[1]).simplify(cache);
+      }
+    }
+
     // Where(cond, 1, 0) => Cast(ty, cond)
     if (
       op === AluOp.Where &&
