@@ -192,7 +192,7 @@
         break;
       case "ConvNet":
         Model = ConvNet;
-        batchSize = 200;
+        batchSize = 500;
         break;
       default:
         throw new Error(`Unknown model type: ${modelType}`);
@@ -462,7 +462,7 @@
 
     <p class="mb-4">
       The model is a 3-layer MLP or convolutional neural network trained with
-      Adam. Each epoch has 60 (MLP) or 300 (ConvNet) randomized batches, with
+      Adam. Each epoch has 60 (MLP) or 120 (ConvNet) randomized batches, with
       60,000 images in total in the train set.
     </p>
 
