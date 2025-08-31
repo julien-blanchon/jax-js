@@ -30,6 +30,7 @@ import {
   zip,
 } from "./utils";
 
+/** @inline */
 export type Pair = [number, number];
 
 const jstr = JSON.stringify;

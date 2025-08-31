@@ -485,9 +485,11 @@ export function ravel(a: ArrayLike): Array {
  * Return specified diagonals.
  *
  * If a is 2D, return the diagonal of the array with the given offset. If a is
- * 3D or higher, compute diagonals along the two given axes.
+ * 3D or higher, compute diagonals along the two given axes (default: 0, 1).
  *
- * This returns a view over the existing array.
+ * This returns a view over the existing array. The shape of the resulting array
+ * is determined by removing the two axes along which the diagonal is taken,
+ * then appending a new axis to the right with holding the diagonals.
  */
 export function diagonal(
   a: ArrayLike,

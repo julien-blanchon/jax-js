@@ -1,6 +1,7 @@
 /** @file Core library internals and interpreter stack, based on Autodidax. */
 
 import { AluGroup, AluOp, DType, isFloatDtype } from "../alu";
+import { type Pair } from "../shape";
 import {
   JsTreeDef,
   flatten as treeFlatten,
@@ -72,8 +73,8 @@ interface PrimitiveParamsImpl extends Record<Primitive, Record<string, any>> {
   [Primitive.RandomBits]: { shape: number[]; mode: "xor" | 0 | 1 };
   [Primitive.Reshape]: { shape: number[] };
   [Primitive.Flip]: { axis: number[] };
-  [Primitive.Shrink]: { slice: [number, number][] };
-  [Primitive.Pad]: { width: [number, number][] };
+  [Primitive.Shrink]: { slice: Pair[] };
+  [Primitive.Pad]: { width: Pair[] };
   [Primitive.Gather]: { axis: number[]; outDim: number };
   [Primitive.JitCall]: { jaxpr: Jaxpr; numConsts: number };
 }
@@ -272,7 +273,7 @@ export function flip(x: TracerValue, axis: number[]) {
   return bind1(Primitive.Flip, [x], { axis });
 }
 
-export function shrink(x: TracerValue, slice: [number, number][]) {
+export function shrink(x: TracerValue, slice: Pair[]) {
   const shape = getShape(x);
   if (!Array.isArray(slice) || !slice.every(isNumberPair)) {
     throw new Error(`Invalid shrink() type: ${JSON.stringify(slice)}`);
@@ -293,21 +294,18 @@ export function shrink(x: TracerValue, slice: [number, number][]) {
   return bind1(Primitive.Shrink, [x], { slice });
 }
 
-export function pad(
-  x: TracerValue,
-  width: number | [number, number] | [number, number][],
-) {
+export function pad(x: TracerValue, width: number | Pair | Pair[]) {
   const nd = ndim(x);
   if (typeof width === "number") {
     width = [[width, width]];
   } else if (isNumberPair(width)) {
-    width = [width as [number, number]];
+    width = [width as Pair];
   } else if (!Array.isArray(width) || !width.every(isNumberPair)) {
     throw new TypeError(`Invalid pad() type: ${JSON.stringify(width)}`);
   }
   if (width.length === 1) {
     const [w0, w1] = width[0]; // A single pair should be repeated for all axes.
-    width = rep(nd, () => [w0, w1] as [number, number]);
+    width = rep(nd, () => [w0, w1] as Pair);
   } else if (width.length !== nd) {
     throw new Error(`Invalid pad(): expected ${nd} axes, got ${width.length}`);
   }
@@ -589,10 +587,48 @@ export abstract class Tracer {
   diagonal(offset = 0, axis1 = 0, axis2 = 1): this {
     if (!Number.isInteger(offset))
       throw new TypeError(`offset must be an integer, got ${offset}`);
+    if (offset < 0) return this.diagonal(-offset, axis2, axis1);
+    axis1 = checkAxis(axis1, this.ndim);
+    axis2 = checkAxis(axis2, this.ndim);
     if (axis1 === axis2) throw new Error("axis1 and axis2 must not be equal");
-    // TODO: This is possible on the forward pass, but we need a custom JVP
-    // rule, so build it out of other primitives later. (reshape + stride)
-    throw new Error("diagonal not implemented");
+    if (offset >= this.shape[axis2])
+      throw new Error("offset exceeds axis size");
+
+    // First, make sure that the last two axes are being taken.
+    //
+    // We can just move them to the end, since the behavior of diagonal() is to
+    // append the new diagonal axis to the right side / end of the shape.
+    let ar: Tracer = this;
+    if (axis1 !== ar.ndim - 2 || axis2 !== ar.ndim - 1) {
+      const perm = range(ar.ndim)
+        .filter((i) => i !== axis1 && i !== axis2)
+        .concat(axis1, axis2);
+      ar = ar.transpose(perm);
+    }
+
+    const [n, m] = ar.shape.slice(-2);
+    const diagSize = Math.min(n, m - offset);
+
+    // Pad and reshape ar into a skewed array of shape [..., diagSize, m+1].
+    ar = ar.reshape([...ar.shape.slice(0, -2), n * m]);
+    const npad = diagSize * (m + 1) - n * m;
+    if (npad > 0) {
+      ar = pad(ar, [...rep<Pair>(ar.ndim - 1, [0, 0]), [0, npad]]);
+    } else if (npad < 0) {
+      ar = shrink(
+        ar,
+        [...ar.shape.slice(0, -1), n * m + npad].map<Pair>((x) => [0, x]),
+      );
+    }
+    ar = ar.reshape([...ar.shape.slice(0, -1), diagSize, m + 1]);
+
+    // Now slice the #offset element of the last axis, and this gives a diagonal.
+    ar = shrink(ar, [
+      ...ar.shape.slice(0, -1).map<Pair>((x) => [0, x]),
+      [offset, offset + 1],
+    ]).reshape(ar.shape.slice(0, -1));
+
+    return ar as this;
   }
 
   /** Flatten the array without changing its data. */
@@ -659,9 +695,7 @@ export abstract class Tracer {
    * the "gather" primitive, and it allows you to access specific elements of
    * the array by integer indices stored in another array.
    */
-  slice(
-    ...index: (number | [] | [number] | [number, number] | null | Tracer)[]
-  ): this {
+  slice(...index: (number | [] | [number] | Pair | null | Tracer)[]): this {
     const checkBounds = (n: number, i: number): number => {
       if (i > n || i < -n)
         throw new RangeError(`Index ${i} out of bounds for axis of size ${n}`);
@@ -723,7 +757,7 @@ export abstract class Tracer {
     // 1. Calculate shape / operations for "basic" slicing.
     // 2. Squeeze out, i.e., reshape (1,) axes from scalar indices.
     // 3. Do gather if needed (hasAdvancedIdx).
-    const slice: [number, number][] = [];
+    const slice: Pair[] = [];
     const basicShape: number[] = [];
     let needsReshape = false;
     let axis = 0;

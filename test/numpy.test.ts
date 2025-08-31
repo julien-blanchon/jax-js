@@ -50,17 +50,17 @@ suite.each(devices)("device:%s", (device) => {
       ]);
     });
 
-    // test("fetches diagonal of 2D array", () => {
-    //   const x = np.array([
-    //     [1, 2, 3],
-    //     [4, 5, 6],
-    //     [7, 8, 9],
-    //   ]);
-    //   const y = np.diag(x.ref);
-    //   expect(y.js()).toEqual([1, 5, 9]);
-    //   const z = np.diag(x, 1);
-    //   expect(z.js()).toEqual([2, 6]);
-    // });
+    test("fetches diagonal of 2D array", () => {
+      const x = np.array([
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9],
+      ]);
+      const y = np.diag(x.ref);
+      expect(y.js()).toEqual([1, 5, 9]);
+      const z = np.diag(x, 1);
+      expect(z.js()).toEqual([2, 6]);
+    });
 
     test("can construct off-diagonal", () => {
       expect(np.diag(np.array([1, 2]), 1).js()).toEqual([
@@ -73,6 +73,50 @@ suite.each(devices)("device:%s", (device) => {
         [0, 0, 0, 0],
         [1, 0, 0, 0],
         [0, 2, 0, 0],
+      ]);
+    });
+  });
+
+  suite("jax.numpy.diagonal()", () => {
+    test("diagonal defaults to first two axes", () => {
+      const a = np.arange(4).reshape([2, 2]);
+      expect(a.ref.diagonal().js()).toEqual([0, 3]);
+      expect(a.ref.diagonal(1).js()).toEqual([1]);
+      expect(a.diagonal(-1).js()).toEqual([2]);
+
+      const b = np.arange(8).reshape([2, 2, 2]);
+      expect(b.diagonal().js()).toEqual([
+        [0, 6],
+        [1, 7],
+      ]);
+    });
+
+    test("can take diagonal over other axes", () => {
+      const a = np.arange(12).reshape([3, 2, 2]);
+      expect(a.ref.diagonal(0, 1, 2).js()).toEqual([
+        [0, 3],
+        [4, 7],
+        [8, 11],
+      ]);
+
+      // a[:, :, 0] = [[0, 2], [4, 6], [8, 10]]
+      expect(np.diagonal(a.ref, 0, 0, 1).js()).toEqual([
+        [0, 6],
+        [1, 7],
+      ]);
+      expect(np.diagonal(a.ref, 1, 0, 1).js()).toEqual([[2], [3]]);
+      expect(np.diagonal(a, 1, 1, 0).js()).toEqual([
+        [4, 10],
+        [5, 11],
+      ]);
+    });
+
+    test("gradient over diagonal sum-of-squares", () => {
+      const a = np.arange(6).astype(np.float32).reshape([2, 3]);
+      const f = (a: np.Array) => a.ref.mul(a).diagonal(1).sum();
+      expect(grad(f)(a).js()).toEqual([
+        [0, 2, 0],
+        [0, 0, 10],
       ]);
     });
   });
