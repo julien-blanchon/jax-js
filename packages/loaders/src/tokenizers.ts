@@ -52,7 +52,7 @@ export async function getBpe(name: BpeEncodingName): Promise<BpeEncoding> {
     return new BpeEncoding(
       encoder,
       specialTokens,
-      /'(?i:[sdmt]|ll|ve|re)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s+$|\s*[\r\n]|\s+(?!\S)|\s/gu,
+      /'(?:[sdmtSDMT]|[lL]{2}|[vV][eE]|[rR][eE])|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s+$|\s*[\r\n]|\s+(?!\S)|\s/gu,
     );
   } else if (name === "o200k_base" || name === "o200k_harmony") {
     const encoder = await loadTiktokenBpe(
@@ -84,9 +84,9 @@ export async function getBpe(name: BpeEncodingName): Promise<BpeEncoding> {
     }
     const pattern = new RegExp(
       [
-        /[^\r\n\p{L}\p{N}]?[\p{Lu}\p{Lt}\p{Lm}\p{Lo}\p{M}]*[\p{Ll}\p{Lm}\p{Lo}\p{M}]+(?i:'s|'t|'re|'ve|'m|'ll|'d)?/u
+        /[^\r\n\p{L}\p{N}]?[\p{Lu}\p{Lt}\p{Lm}\p{Lo}\p{M}]*[\p{Ll}\p{Lm}\p{Lo}\p{M}]+(?:'[stmdSTMD]|'[rR][eE]|'[vV][eE]|'[lL]{2})?/u
           .source +
-          /[^\r\n\p{L}\p{N}]?[\p{Lu}\p{Lt}\p{Lm}\p{Lo}\p{M}]+[\p{Ll}\p{Lm}\p{Lo}\p{M}]*(?i:'s|'t|'re|'ve|'m|'ll|'d)?/u
+          /[^\r\n\p{L}\p{N}]?[\p{Lu}\p{Lt}\p{Lm}\p{Lo}\p{M}]+[\p{Ll}\p{Lm}\p{Lo}\p{M}]*(?:'[stmdSTMD]|'[rR][eE]|'[vV][eE]|'[lL]{2})?/u
             .source +
           /\p{N}{1,3}/u.source +
           / ?[^\s\p{L}\p{N}]+[\r\n/]*/u.source +
