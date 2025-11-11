@@ -91,3 +91,16 @@ suite("CLIP tokenizer", async () => {
     expect(decoded).toBe("<|startoftext|>a photo of a cat <|endoftext|>");
   });
 });
+
+suite("tiktoken encodings", () => {
+  test("r50k_base", async () => {
+    const enc = await getBpe("r50k_base");
+    expect(enc.encode("hello world")).toEqual([31373, 995]);
+    expect(enc.encode("")).toEqual([]);
+  });
+
+  test("p50k_base", async () => {
+    const enc = await getBpe("p50k_base");
+    expect(enc.encode("hello world")).toEqual([31373, 995]);
+  });
+});

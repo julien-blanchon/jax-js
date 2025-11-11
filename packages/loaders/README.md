@@ -61,17 +61,17 @@ safetensors.parse(buf); // => { tensors: { ... } };
 
 ## Tokenizers
 
-Tokenization for preparing the inputs to a model. This currently implements [byte-pair encoding (BPE)](https://github.com/openai/tiktoken).
+Tokenization for preparing the inputs to a model. It currently supports the [byte-pair encoding (BPE)](https://github.com/openai/tiktoken) format for various transformers and CLIP.
 
-Since these tokenizer definitions can be nontrivially large (~1 MB), their data is fetched from CDN as needed.
+Since tokenizer definitions can be nontrivially large (~1 MB), their data is fetched from CDN as needed.
 
 ```ts
 import { tokenizers } from "@jax-js/loaders";
 
-const tokenizer = await tokenizers.get("clip");
+const enc = await tokenizers.getBpe("clip");
 
-const buf = tokenizer.encode("Hello, world!"); // => Uint32Array [ 49406, 3306, 267, 1002, ... ]
-tokenizer.decode(buf); // => "Hello, world!"
+const tokens = enc.encode("Hello, world!"); // => [ 49406, 3306, 267, 1002, ... ]
+enc.decode(tokens); // => "Hello, world!"
 ```
 
 ## WeightMapper

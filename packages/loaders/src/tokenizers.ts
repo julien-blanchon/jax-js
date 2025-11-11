@@ -1,13 +1,102 @@
 import { cachedFetch } from "./opfs";
 
 /** Supported tokenizer types. */
-export type BpeEncodingName = "clip" | (string & {});
+export type BpeEncodingName =
+  | "clip"
+  | "r50k_base"
+  | "p50k_base"
+  | "p50k_edit"
+  | "cl100k_base"
+  | "o200k_base"
+  | "o200k_harmony"
+  | (string & {});
+
+// Reference: https://github.com/openai/tiktoken/blob/0.12.0/tiktoken_ext/openai_public.py
+const r50kPattern =
+  /'(?:[sdmt]|ll|ve|re)| ?[\p{L}]+| ?[\p{N}]+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+/gu;
 
 /** Get a tokenizer by name. */
 export async function getBpe(name: BpeEncodingName): Promise<BpeEncoding> {
   if (name === "clip") {
     const vocab = await loadClipData();
     return new ClipEncoding(vocab);
+  } else if (name === "r50k_base") {
+    // The "https://openaipublic.blob.core.windows.net" URLs do not have CORS headers, so we use
+    // this random NPM library's redistributed CDN instead.
+    const encoder = await loadTiktokenBpe(
+      "https://cdn.jsdelivr.net/npm/gpt-tokenizer@3.0.1/data/r50k_base.tiktoken",
+    );
+    return new BpeEncoding(encoder, { "<|endoftext|>": 50256 }, r50kPattern);
+  } else if (name === "p50k_base" || name === "p50k_edit") {
+    const encoder = await loadTiktokenBpe(
+      "https://cdn.jsdelivr.net/npm/gpt-tokenizer@3.0.1/data/p50k_base.tiktoken",
+    );
+    const specialTokens: Record<string, number> = { "<|endoftext|>": 50256 };
+    if (name === "p50k_edit") {
+      specialTokens["<|fim_prefix|>"] = 50281;
+      specialTokens["<|fim_middle|>"] = 50282;
+      specialTokens["<|fim_suffix|>"] = 50283;
+    }
+    return new BpeEncoding(encoder, specialTokens, r50kPattern);
+  } else if (name === "cl100k_base") {
+    const encoder = await loadTiktokenBpe(
+      "https://cdn.jsdelivr.net/npm/gpt-tokenizer@3.0.1/data/cl100k_base.tiktoken",
+    );
+    const specialTokens = {
+      "<|endoftext|>": 100257,
+      "<|fim_prefix|>": 100258,
+      "<|fim_middle|>": 100259,
+      "<|fim_suffix|>": 100260,
+      "<|endofprompt|>": 100276,
+    };
+    return new BpeEncoding(
+      encoder,
+      specialTokens,
+      /'(?i:[sdmt]|ll|ve|re)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s+$|\s*[\r\n]|\s+(?!\S)|\s/gu,
+    );
+  } else if (name === "o200k_base" || name === "o200k_harmony") {
+    const encoder = await loadTiktokenBpe(
+      "https://cdn.jsdelivr.net/npm/gpt-tokenizer@3.0.1/data/o200k_base.tiktoken",
+    );
+    const specialTokens: Record<string, number> = {
+      "<|endoftext|>": 199999,
+      "<|endofprompt|>": 200018,
+    };
+    if (name === "o200k_harmony") {
+      delete specialTokens["<|endofprompt|>"];
+      specialTokens["<|startoftext|>"] = 199998;
+      specialTokens["<|reserved_200000|>"] = 200000;
+      specialTokens["<|reserved_200001|>"] = 200001;
+      specialTokens["<|return|>"] = 200002;
+      specialTokens["<|constrain|>"] = 200003;
+      specialTokens["<|reserved_200004|>"] = 200004;
+      specialTokens["<|channel|>"] = 200005;
+      specialTokens["<|start|>"] = 200006;
+      specialTokens["<|end|>"] = 200007;
+      specialTokens["<|message|>"] = 200008;
+      specialTokens["<|reserved_200009|>"] = 200009;
+      specialTokens["<|reserved_200010|>"] = 200010;
+      specialTokens["<|reserved_200011|>"] = 200011;
+      specialTokens["<|call|>"] = 200012;
+      for (let i = 200013; i < 201088; i++) {
+        specialTokens[`<|reserved_${i}|>`] = i;
+      }
+    }
+    const pattern = new RegExp(
+      [
+        /[^\r\n\p{L}\p{N}]?[\p{Lu}\p{Lt}\p{Lm}\p{Lo}\p{M}]*[\p{Ll}\p{Lm}\p{Lo}\p{M}]+(?i:'s|'t|'re|'ve|'m|'ll|'d)?/u
+          .source +
+          /[^\r\n\p{L}\p{N}]?[\p{Lu}\p{Lt}\p{Lm}\p{Lo}\p{M}]+[\p{Ll}\p{Lm}\p{Lo}\p{M}]*(?i:'s|'t|'re|'ve|'m|'ll|'d)?/u
+            .source +
+          /\p{N}{1,3}/u.source +
+          / ?[^\s\p{L}\p{N}]+[\r\n/]*/u.source +
+          /\s*[\r\n]+/.source +
+          /\s+(?!\S)/.source +
+          /\s+/.source,
+      ].join("|"),
+      "gu",
+    );
+    return new BpeEncoding(encoder, specialTokens, pattern);
   }
 
   throw new Error(`Unsupported tokenizer: ${name}`);
@@ -100,12 +189,13 @@ export class BpeEncoding {
   /** Construct a new BPE encoding. */
   constructor(
     encoder: Map<string, number>,
-    specialTokensEncoder: Map<string, number>,
+    specialTokens: Record<string, number>,
     regex: RegExp,
   ) {
     if (!regex.global) {
       throw new Error("Regex for BPE pattern should have global flag set");
     }
+    const specialTokensEncoder = new Map(Object.entries(specialTokens));
     const specialRegex = new RegExp(
       [...specialTokensEncoder.keys()].map(_escapeRegex).join("|"),
       "g",
@@ -237,11 +327,11 @@ class ClipEncoding extends BpeEncoding {
     /(?:'s|'t|'re|'ve|'m|'ll|'d|[a-z]+|[0-9]|[^\s\w]+) ?/g;
 
   constructor(encoder: Map<string, number>) {
-    const specialTokensEncoder = new Map<string, number>([
-      ["<|startoftext|>", encoder.size], // 49406
-      ["<|endoftext|>", encoder.size + 1], // 49407
-    ]);
-    super(encoder, specialTokensEncoder, ClipEncoding.pattern);
+    const specialTokens = {
+      "<|startoftext|>": encoder.size, // 49406
+      "<|endoftext|>": encoder.size + 1, // 49407
+    };
+    super(encoder, specialTokens, ClipEncoding.pattern);
   }
 
   _beforeEncode(text: string): string {
@@ -400,6 +490,20 @@ async function loadClipData(): Promise<Map<string, number>> {
   for (const line of merges) {
     const [first, second] = line.split(" ");
     encoder.set(decodeDataGym(first) + decodeDataGym(second), encoder.size);
+  }
+  return encoder;
+}
+
+async function loadTiktokenBpe(url: string): Promise<Map<string, number>> {
+  const data = await cachedFetch(url);
+  const encoder = new Map<string, number>();
+  for (const line of new TextDecoder().decode(data).split("\n")) {
+    if (!line) continue;
+    const [token, rank] = line.split(/\s+/);
+    encoder.set(
+      _bytesToHex(Uint8Array.from(atob(token), (c) => c.charCodeAt(0))),
+      parseInt(rank),
+    );
   }
   return encoder;
 }
