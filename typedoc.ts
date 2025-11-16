@@ -4,7 +4,16 @@ import { spawn } from "node:child_process";
 import { readdir } from "node:fs/promises";
 
 /** Run a shell command, echo its output, and throw on non‑zero exit. */
-async function sh(cmd: string): Promise<void> {
+async function sh(
+  strings: TemplateStringsArray,
+  ...values: (string | number)[]
+): Promise<void> {
+  // Use raw strings to preserve backslashes (like String.raw)
+  const cmd = strings.raw.reduce(
+    (acc, str, i) => acc + str + (values[i] ?? ""),
+    "",
+  );
+
   return new Promise((resolve, reject) => {
     const child = spawn(cmd, { shell: true, stdio: "inherit" });
     child.on("close", (code) => {
@@ -18,18 +27,15 @@ async function sh(cmd: string): Promise<void> {
 }
 
 // Docs for @jax-js/jax.
-await sh(`pnpm typedoc src/index.ts --json docs-json/jax.json`);
+await sh`pnpm typedoc src/index.ts --json docs-json/jax.json`;
 
 // Generate docs for each package in the packages directory.
 for (const pkg of await readdir("packages")) {
-  await sh(
-    `pnpm typedoc packages/${pkg}/src/index.ts --json docs-json/${pkg}.json`,
-  );
+  await sh`pnpm typedoc packages/${pkg}/src/index.ts --json docs-json/${pkg}.json`;
 }
 
 // Merge all package docs into a single HTML output.
-await sh(
-  String.raw`
+await sh`
 pnpm typedoc \
   --name jax-js \
   --entryPointStrategy merge \
@@ -40,5 +46,4 @@ pnpm typedoc \
   --plugin typedoc-theme-fresh \
   --theme fresh \
   "docs-json/*.json"
-`,
-);
+`;
