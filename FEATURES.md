@@ -633,7 +633,7 @@ would need substantial changes to work well in JavaScript.
 | `selu`           | 🟠      |                  |
 | `gelu`           | 🟡      | Approximate GELU |
 | `glu`            | 🟢      |                  |
-| `squareplus`     | 🟠      |                  |
+| `squareplus`     | 🟢      |                  |
 | `mish`           | 🟢      |                  |
 | `identity`       | 🟢      |                  |
 

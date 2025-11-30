@@ -16,6 +16,8 @@ import {
   maximum,
   negative,
   reciprocal,
+  sqrt,
+  square,
   tanh,
   where,
 } from "./numpy";
@@ -106,7 +108,10 @@ export function logSigmoid(x: ArrayLike): Array {
 export const identity = fudgeArray;
 
 /** Leaky rectified linear (ReLU) activation function */
-export function leakyRelu(x: ArrayLike, negativeSlope: number = 0.01): Array {
+export function leakyRelu(
+  x: ArrayLike,
+  negativeSlope: ArrayLike = 0.01,
+): Array {
   x = fudgeArray(x);
   return where(less(x.ref, 0), x.ref.mul(negativeSlope), x);
 }
@@ -117,7 +122,7 @@ export function leakyRelu(x: ArrayLike, negativeSlope: number = 0.01): Array {
  * Computes the element-wise function:
  * `elu(x) = x > 0 ? x : alpha * (exp(x) - 1)`
  */
-export function elu(x: ArrayLike, alpha: number = 1.0): Array {
+export function elu(x: ArrayLike, alpha: ArrayLike = 1.0): Array {
   x = fudgeArray(x);
   return where(less(x.ref, 0), exp(x.ref).sub(1).mul(alpha), x);
 }
@@ -128,7 +133,7 @@ export function elu(x: ArrayLike, alpha: number = 1.0): Array {
  * Computes the element-wise function:
  * `celu(x) = x > 0 ? x : alpha * (exp(x/alpha) - 1)`
  */
-export function celu(x: ArrayLike, alpha: number = 1.0): Array {
+export function celu(x: ArrayLike, alpha: ArrayLike = 1.0): Array {
   x = fudgeArray(x);
   return where(less(x.ref, 0), exp(x.ref.div(alpha)).sub(1).mul(alpha), x);
 }
@@ -175,6 +180,17 @@ export function glu(x: ArrayLike, axis: number = -1): Array {
   const a = shrink(x.ref, slice.toSpliced(axis, 1, [0, size / 2])) as Array;
   const b = shrink(x, slice.toSpliced(axis, 1, [size / 2, size])) as Array;
   return a.mul(sigmoid(b));
+}
+
+/**
+ * Squareplus activation function.
+ *
+ * Computes the element-wise function:
+ * `squareplus(x) = 0.5 * (x + sqrt(x^2 + b))`
+ */
+export function squareplus(x: ArrayLike, b: ArrayLike = 4.0): Array {
+  x = fudgeArray(x);
+  return x.ref.add(sqrt(square(x).add(b))).mul(0.5);
 }
 
 /**
