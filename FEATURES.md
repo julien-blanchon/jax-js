@@ -88,21 +88,19 @@ with "weak types" baked into the compiler IR.
 [Complex numbers](https://docs.jax.dev/en/latest/_autosummary/jax.lax.complex.html) are not
 supported.
 
-| Data type     | CPU (debug) | Wasm | WebGPU | Notes                    |
-| ------------- | ----------- | ---- | ------ | ------------------------ |
-| `np.bool_`    | 🟢          | 🟢   | 🟢     |                          |
-| `np.int8`     | 🟠          | 🟠   | 🟠     | requires emulation       |
-| `np.uint8`    | 🟠          | 🟠   | 🟠     | requires emulation       |
-| `np.int16`    | 🟠          | 🟠   | 🟠     | requires emulation       |
-| `np.uint16`   | 🟠          | 🟠   | 🟠     | requires emulation       |
-| `np.int32`    | 🟢          | 🟢   | 🟢     |                          |
-| `np.uint32`   | 🟢          | 🟢   | 🟢     |                          |
-| `np.int64`    | 🔴          | 🔴   | 🔴     | requires bigint refactor |
-| `np.uint64`   | 🔴          | 🔴   | 🔴     | requires bigint refactor |
-| `np.bfloat16` | 🔴          | 🔴   | 🔴     | lacks support            |
-| `np.float16`  | 🟢          | 🔴   | 🟢     | no wasm support          |
-| `np.float32`  | 🟢          | 🟢   | 🟢     |                          |
-| `np.float64`  | 🟠          | 🟠   | 🔴     | no webgpu support        |
+| Data type     | CPU (debug) | Wasm | WebGPU | Notes              |
+| ------------- | ----------- | ---- | ------ | ------------------ |
+| `np.bool_`    | 🟢          | 🟢   | 🟢     |                    |
+| `np.int8`     | 🟠          | 🟠   | 🟠     | requires emulation |
+| `np.uint8`    | 🟠          | 🟠   | 🟠     | requires emulation |
+| `np.int16`    | 🟠          | 🟠   | 🟠     | requires emulation |
+| `np.uint16`   | 🟠          | 🟠   | 🟠     | requires emulation |
+| `np.int32`    | 🟢          | 🟢   | 🟢     |                    |
+| `np.uint32`   | 🟢          | 🟢   | 🟢     |                    |
+| `np.bfloat16` | 🔴          | 🔴   | 🔴     | lacks support      |
+| `np.float16`  | 🟢          | 🔴   | 🟢     | no wasm support    |
+| `np.float32`  | 🟢          | 🟢   | 🟢     |                    |
+| `np.float64`  | 🟠          | 🟠   | 🔴     | no webgpu support  |
 
 Most operations behave the same way as they do in JAX.
 [API docs](https://www.ekzhang.com/jax-js/docs/modules/_jax-js_jax.numpy.html).
