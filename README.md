@@ -2,8 +2,9 @@
 
 [Website](https://www.ekzhang.com/jax-js/) | [API Reference](https://www.ekzhang.com/jax-js/docs/)
 
-This is a machine learning framework for the browser. It aims to bring JAX-style, high-performance
-CPU and GPU kernels to JavaScript, so you can run numerical applications on the web.
+**jax-js** is a machine learning framework for the browser. It aims to bring JAX-style,
+high-performance CPU and GPU kernels to JavaScript, so you can run numerical applications on the
+web.
 
 ```bash
 npm i @jax-js/jax
@@ -24,7 +25,7 @@ const x = np.array([1, 2, 3]);
 const y = x.mul(4); // [4, 8, 12]
 ```
 
-It also lets you take derivatives like in JAX.
+It also lets you take derivatives with `grad` like in JAX (as well as `vmap`, `jit`).
 
 ```js
 import { grad, numpy as np } from "@jax-js/jax";
@@ -37,11 +38,14 @@ const xnorm = norm(x.ref); // 1^2 + 2^2 + 3^2 = 14
 const xgrad = grad(norm)(x); // [2, 4, 6]
 ```
 
-The default backend runs on CPU, but on [supported browsers](https://caniuse.com/webgpu), you can
-switch to GPU for better performance.
+The default backend runs on CPU, but on [supported browsers](https://caniuse.com/webgpu) including
+Chrome and iOS Safari, you can switch to GPU for better performance.
 
 ```js
-import { defaultDevice, numpy as np } from "@jax-js/jax";
+import { defaultDevice, init, numpy as np } from "@jax-js/jax";
+
+// Initialize the GPU backend.
+await init("webgpu");
 
 // Change the default backend to GPU.
 defaultDevice("webgpu");
@@ -53,7 +57,42 @@ const y = np.dot(x.ref, x); // JIT-compiled into a matrix multiplication kernel
 Most common JAX APIs are supported. See the [compatibility table](./FEATURES.md) for a full
 breakdown of what features are available.
 
+### Web usage (CDN)
+
+If you want to use `jax-js` in vanilla JavaScript (without a bundler), just import from a module
+script tag. This is the easiest way to get started on a blank HTML page.
+
+```html
+<script type="module">
+  import { numpy as np } from "https://esm.sh/@jax-js/jax";
+</script>
+```
+
+### Performance
+
+We haven't spent a ton of time optimizing yet, but performance is generally pretty good. `jit` is
+very helpful for fusing operations together, and it's a feature only available on the web in jax-js.
+The default kernel-tuning heuristics get about 3000 GFLOP/s for matrix multiplication on an M4 Pro
+chip ([try it](https://www.ekzhang.com/jax-js/bench/matmul)).
+
+For that example, it's around the same GFLOP/s as
+[TensorFlow.js](https://github.com/tensorflow/tfjs) and
+[ONNX Runtime Web](https://www.npmjs.com/package/onnxruntime-web), which both use handwritten
+libraries of custom kernels (versus jax-js, which generates kernels with an ML compiler).
+
+## Examples
+
+If you make something cool with jax-js, don't be a stranger! We can feature it here.
+
+- [In-browser REPL](https://www.ekzhang.com/jax-js/repl)
+- [Interactive MNIST training](https://www.ekzhang.com/jax-js/mnist)
+- [Matmul benchmark](https://www.ekzhang.com/jax-js/bench/matmul)
+- [Conv2d benchmark](https://www.ekzhang.com/jax-js/bench/conv2d)
+- [Mandelbrot set](https://www.ekzhang.com/jax-js/mandelbrot)
+
 ## Development
+
+_The following technical details are for contributing to jax-js and modifying its internals._
 
 This repository is managed by [`pnpm`](https://pnpm.io/). You can compile and build all packages in
 watch mode with:
@@ -70,14 +109,25 @@ pnpm exec playwright install
 pnpm test
 ```
 
-_We are currently on an older version of Playwright that supports using WebGPU in headless mode;
-newer versions seem to skip the WebGPU tests._
+We are currently on an older version of Playwright that supports using WebGPU in headless mode;
+newer versions skip the WebGPU tests.
 
 To start a Vite dev server running the website, demos and REPL:
 
 ```bash
 pnpm -C website dev
 ```
+
+## Future work / help wanted
+
+Contributions are welcomed in the following areas:
+
+- Adding support for more JAX functions and operations, see [compatibility table](./FEATURES.md).
+- Improving performance of the WebGPU and Wasm runtimes, generating better kernels, and using SIMD
+  and multithreading.
+- Adding WebGL runtime for older browsers that don't support WebGPU.
+- Making a fast transformer inference engine, comparing against onnxruntime-web.
+- Ergonomics and API improvements.
 
 ## Next on Eric's mind
 
@@ -126,14 +176,3 @@ pnpm -C website dev
         [ref](https://docs.jax.dev/en/latest/sharded-computation.html#sharded-data-placement)
   - [ ] Device switching with `device_put()` between webgpu/cpu/wasm
 - [x] numpy/jax API compatibility table
-
-## Future work / help wanted
-
-Contributions are welcomed in the following areas:
-
-- Adding support for more JAX functions and operations, see [compatibility table](./FEATURES.md).
-- Improving performance of the WebGPU and Wasm runtimes, generating better kernels, using SIMD and
-  multithreading.
-- Adding WebGL runtime for older browsers that don't support WebGPU.
-- Making a fast transformer inference engine, comparing against onnxruntime-web.
-- Ergonomics and API improvements.
