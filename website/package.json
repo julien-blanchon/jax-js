@@ -36,6 +36,7 @@
     "vite": "^6.1.1"
   },
   "dependencies": {
+    "@fontsource-variable/tiktok-sans": "^5.2.3",
     "@jax-js/jax": "workspace:*",
     "@jax-js/loaders": "workspace:*",
     "@jax-js/optax": "workspace:*",

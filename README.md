@@ -125,6 +125,7 @@ Contributions are welcomed in the following areas:
 - Adding support for more JAX functions and operations, see [compatibility table](./FEATURES.md).
 - Improving performance of the WebGPU and Wasm runtimes, generating better kernels, and using SIMD
   and multithreading.
+- Helping the JIT compiler to fuse operations in more cases.
 - Adding WebGL runtime for older browsers that don't support WebGPU.
 - Making a fast transformer inference engine, comparing against onnxruntime-web.
 - Ergonomics and API improvements.
@@ -133,11 +134,10 @@ Contributions are welcomed in the following areas:
 
 - Finish CLIP inference demo and associated features (depthwise convolution, vmap of gather, etc.)
 - Performance
-  - Improve perf of MNIST neural network
-    - Optimize conv2d further (maybe blocks -> local dims?)
+  - Improve perf of MobileCLIP neural network
     - Add fused epilogue to JIT
+    - Fix fusion of activation functions with branches like tanh
     - Reduce kernel overhead of constants / inline expressions
-  - Investigate why jax-js Matmul is 2x slower on Safari TP than unroll kernel
   - How many threads to create per workgroup, depends on hardware
 
 ## Milestones

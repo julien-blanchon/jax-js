@@ -4,10 +4,12 @@
 
   let {
     initialText,
+    editorOptions = {},
     onformat,
     onrun,
   }: {
     initialText: string;
+    editorOptions?: Monaco.editor.IStandaloneEditorConstructionOptions;
     onformat?: () => void;
     onrun?: () => void;
   } = $props();
@@ -52,6 +54,8 @@
     editor = monaco.editor.create(containerEl, {
       fontSize: 13,
       automaticLayout: true,
+      renderLineHighlight: "none",
+      ...editorOptions,
     });
     editor.addAction({
       id: "format",

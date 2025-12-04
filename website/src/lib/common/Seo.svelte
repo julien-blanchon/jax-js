@@ -1,7 +1,7 @@
 <script lang="ts">
   const {
     title = "jax-js",
-    description = "JavaScript library for numerical and GPU computing on the web",
+    description = "Machine learning library and compiler in JavaScript, generating fast WebAssembly and WebGPU kernels",
   }: { title?: string; description?: string } = $props();
 </script>
 

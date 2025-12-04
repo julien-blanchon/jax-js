@@ -418,7 +418,9 @@
         style:scrollbar-width="thin"
       >
         <h1 class="text-xl font-light mb-4">
-          <a href="{base}/"><span class="font-medium">jax-js</span> REPL</a>
+          <a target="_blank" href="{base}/"
+            ><span class="font-medium">jax-js</span> REPL</a
+          >
         </h1>
 
         <hr class="mb-6 border-gray-200" />
