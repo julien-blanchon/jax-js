@@ -273,5 +273,6 @@
   /* Prevent diagnostics or hover hints from editor from being cut off. */
   div :global(svelte-split-pane-section) {
     overflow: visible !important;
+    min-height: 0;
   }
 </style>

@@ -166,9 +166,8 @@
       This is a live editor, the code is running in your browser.
     </p>
 
-    <div class="h-100">
-      <EmbeddedRepl
-        initialText={String.raw`import { grad, numpy as np } from "@jax-js/jax";
+    <EmbeddedRepl
+      initialText={String.raw`import { grad, numpy as np } from "@jax-js/jax";
 
 const f = (x: np.Array) => np.sqrt(x.ref.mul(x).sum());
 const df = grad(f);
@@ -177,8 +176,7 @@ const x = np.array([1, 2, 3, 4]);
 console.log(f(x.ref).js());
 console.log(df(x).js());
 `}
-      />
-    </div>
+    />
   </section>
 
   <!-- Learn More section -->

@@ -4,9 +4,11 @@
   import {
     CheckIcon,
     ExternalLinkIcon,
+    FoldVerticalIcon,
     LoaderIcon,
     PlayIcon,
     TerminalIcon,
+    UnfoldVerticalIcon,
   } from "lucide-svelte";
 
   import ConsoleLine from "./ConsoleLine.svelte";
@@ -26,12 +28,17 @@
   let replLink = $derived(`/repl?content=` + encodeContent(currentText));
   let device = $state<Device>("webgpu");
 
+  let expanded = $state(false);
+
   async function handleRun() {
     await runner.runProgram(editor.getText(), device);
   }
 </script>
 
-<div class="h-full flex flex-col border border-gray-200 rounded-lg">
+<div
+  class="flex flex-col border border-gray-200 rounded-lg"
+  style:height={expanded ? "720px" : "360px"}
+>
   <div
     class="shrink-0 border-b border-gray-200 flex items-center px-2 py-1.5 gap-2"
   >
@@ -42,6 +49,18 @@
     >
       <PlayIcon size={16} />
       Run
+    </button>
+    <button
+      class="hover:bg-gray-100 px-2 py-0.5 rounded flex text-sm items-center gap-1.5"
+      onclick={() => (expanded = !expanded)}
+    >
+      {#if expanded}
+        <FoldVerticalIcon size={16} />
+        Collapse
+      {:else}
+        <UnfoldVerticalIcon size={16} />
+        Expand
+      {/if}
     </button>
     <a
       href={replLink}
@@ -130,5 +149,6 @@
   /* Prevent diagnostics or hover hints from editor from being cut off. */
   .split-pane-container :global(svelte-split-pane-section) {
     overflow: visible !important;
+    min-height: 0;
   }
 </style>
