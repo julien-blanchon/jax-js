@@ -1,6 +1,6 @@
 {
   "name": "@jax-js/optax",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Gradient processing and optimization library for jax-js",
   "keywords": [
     "machine learning",
@@ -40,6 +40,6 @@
     "postpublish": "git tag optax/v$npm_package_version && git push --tags"
   },
   "dependencies": {
-    "@jax-js/jax": "workspace:*"
+    "@jax-js/jax": "workspace:^"
   }
 }

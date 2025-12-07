@@ -37,9 +37,9 @@
   },
   "dependencies": {
     "@fontsource-variable/tiktok-sans": "^5.2.3",
-    "@jax-js/jax": "workspace:*",
-    "@jax-js/loaders": "workspace:*",
-    "@jax-js/optax": "workspace:*",
+    "@jax-js/jax": "workspace:^",
+    "@jax-js/loaders": "workspace:^",
+    "@jax-js/optax": "workspace:^",
     "@observablehq/plot": "^0.6.17",
     "@rich_harris/svelte-split-pane": "^2.0.0",
     "@rollup/browser": "^4.34.8",

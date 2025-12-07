@@ -65,7 +65,7 @@ importers:
   packages/optax:
     dependencies:
       '@jax-js/jax':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../..
 
   website:
@@ -74,13 +74,13 @@ importers:
         specifier: ^5.2.3
         version: 5.2.3
       '@jax-js/jax':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:..
       '@jax-js/loaders':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../packages/loaders
       '@jax-js/optax':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../packages/optax
       '@observablehq/plot':
         specifier: ^0.6.17
