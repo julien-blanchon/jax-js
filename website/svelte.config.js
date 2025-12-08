@@ -6,9 +6,9 @@ const config = {
   preprocess: vitePreprocess(),
 
   kit: {
-    // Fallback is used for deploying with GitHub Pages.
-    // https://svelte.dev/docs/kit/adapter-static#GitHub-Pages
-    adapter: adapter({ fallback: "404.html" }),
+    // Fallback is used for dynamic routes that aren't prerendered.
+    // https://svelte.dev/docs/kit/adapter-static
+    adapter: adapter({ fallback: "200.html" }),
     alias: {
       "$app.css": "src/app.css",
     },
