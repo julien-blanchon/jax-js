@@ -135,7 +135,7 @@ type ArrayConstructorArgs = {
 /**
  * A multidimensional numeric array with data stored on CPU or GPU.
  *
- * This is the library's core data type. Equivalent to `jnp.Array` from JAX, or
+ * This is the library's core data type. Equivalent to `jax.Array` from JAX, or
  * `torch.Tensor`.
  *
  * Not to be confused with the JavaScript "Array" constructor. Avoid importing

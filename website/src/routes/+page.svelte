@@ -5,6 +5,7 @@
   import { ArrowUpRight } from "lucide-svelte";
 
   import logo from "$lib/assets/logo.svg";
+  import MatmulPerfDemo from "$lib/homepage/MatmulPerfDemo.svelte";
   import EmbeddedRepl from "$lib/repl/EmbeddedRepl.svelte";
 
   const installText = {
@@ -54,8 +55,8 @@
 <main class="font-tiktok">
   <!-- Hero section -->
   <section class="px-6 py-12 md:py-16 max-w-screen-xl mx-auto">
-    <div class="grid md:grid-cols-[5fr_3fr] gap-x-12 gap-y-16 items-center">
-      <div>
+    <div class="grid md:grid-cols-[5fr_3fr] gap-x-12 gap-y-16">
+      <div class="lg:py-8">
         <h1 class="text-3xl sm:text-4xl mb-6 leading-tight max-w-2xl">
           jax-js is <span class="hidden sm:inline">a machine learning</span
           ><span class="sm:hidden">an ML</span> library and compiler for the web
@@ -94,18 +95,7 @@
       </div>
 
       <!-- Performance Chart -->
-      <section class="flex flex-col justify-center items-center text-center">
-        <h3 class="text-lg mb-1">Matrix multiplication</h3>
-        <p class="text-gray-700 text-sm mb-8 max-w-[32ch]">
-          Billions of floating point operations (GFLOPs) per second
-        </p>
-        <!-- Bar chart -->
-        <div
-          class="h-60 w-80 border bg-red-50 p-8 flex justify-center items-center text-red-500 text-sm"
-        >
-          widget / perf demo under construction
-        </div>
-      </section>
+      <MatmulPerfDemo />
     </div>
   </section>
 
