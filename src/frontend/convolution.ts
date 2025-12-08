@@ -7,7 +7,7 @@
 //  - https://github.com/jax-ml/jax/blob/main/jax/_src/lax/convolution.py
 
 import { Pair, ShapeTracker } from "../shape";
-import { deepEqual, prod, range, rep, zipn } from "../utils";
+import { deepEqual, prod, range, rep, zip, zipn } from "../utils";
 
 /** Definition of a general dilated convolution. Should be valid on creation. */
 export interface ConvParams {
@@ -160,7 +160,31 @@ export function pool(
     Math.ceil((i - d * (k - 1)) / s),
   );
 
-  // TODO: Alternative implementation for d=1 and k<=s, faster (e.g., max pooling).
+  // Alternative implementation for d=1 and k<=s, faster (e.g., max pooling).
+  if (d_.every((d) => d === 1) && ks.every((k, j) => k <= s_[j])) {
+    // Pad or shrink to shape [..., o_ * s_]
+    st = st.padOrShrink([
+      ...noop.map<Pair>(() => [0, 0]),
+      ...zipn(i_, o_, s_).map<Pair>(([i, o, s]) => [0, o * s - i]),
+    ]);
+    // Reshape to [..., o_, s_] and then shrink to [..., o_, k_]
+    st = st
+      .reshape([...noop, ...zip(o_, s_).flatMap(([o, s]) => [o, s])])
+      .shrink([
+        ...noop.map<Pair>((x) => [0, x]),
+        ...zip(o_, ks).flatMap<Pair>(([o, k]) => [
+          [0, o],
+          [0, k],
+        ]),
+      ]);
+    // Permute k_ dimensions to end.
+    st = st.permute([
+      ...range(noop.length),
+      ...ks.map((_, j) => noop.length + 2 * j), // o_ dimensions
+      ...ks.map((_, j) => noop.length + 2 * j + 1), // k_ dimensions
+    ]);
+    return st;
+  }
 
   // Input size scaling factor to make sure shrink for stride is possible.
   const f_ = zipn(o_, s_, i_, d_, ks).map(
@@ -247,6 +271,33 @@ export function poolTranspose(
   const o_ = zipn(i_, d_, ks, s_).map(([i, d, k, s]) =>
     Math.ceil((i - d * (k - 1)) / s),
   );
+
+  // Alternative implementation for d=1 and k<=s, faster (e.g., max pooling).
+  if (d_.every((d) => d === 1) && ks.every((k, j) => k <= s_[j])) {
+    // Undo moving k_ dimensions to the end.
+    st = st.permute([
+      ...range(noop.length),
+      ...ks.flatMap((_, j) => [noop.length + j, noop.length + o_.length + j]),
+    ]);
+    // Undo shrinking s_ to k_, and then undo reshaping o_ * s_ to [o_, s_].
+    st = st
+      .pad([
+        ...noop.map<Pair>(() => [0, 0]),
+        ...zip(s_, ks).flatMap<Pair>(([s, k]) => [
+          [0, 0],
+          [0, s - k],
+        ]),
+      ])
+      .reshape([...noop, ...zip(o_, s_).map(([o, s]) => o * s)]);
+    // Undo pad or shrink from original shape to o_ * s_.
+    st = st.padOrShrink([
+      ...noop.map<Pair>(() => [0, 0]),
+      ...zipn(i_, o_, s_).map<Pair>(([i, o, s]: number[]) => [0, i - o * s]),
+    ]);
+    // We need some additional dimensions to match behavior of the behavior of
+    // the other implementation, where add |ks| axes for repetitions.
+    return st.reshape(st.shape.concat(rep(ks.length, 1)));
+  }
 
   if (!deepEqual(o_, st.shape.slice(noop.length, noop.length + ks.length))) {
     throw new Error("poolTranspose() called with mismatched output shape");

@@ -19,6 +19,7 @@ import {
 import * as core from "./frontend/core";
 import { jit } from "./frontend/jaxpr";
 import * as vmapModule from "./frontend/vmap";
+import { Pair } from "./shape";
 import {
   checkAxis,
   deepEqual,
@@ -158,7 +159,7 @@ export const moveaxis = vmapModule.moveaxis as (
  */
 export const pad = core.pad as (
   x: ArrayLike,
-  width: number | [number, number] | [number, number][],
+  width: number | Pair | Pair[],
 ) => Array;
 
 /**
