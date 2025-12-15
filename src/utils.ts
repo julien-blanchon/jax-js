@@ -18,6 +18,8 @@ export function setDebug(level: number) {
   DEBUG = level;
 }
 
+export function assertNonNull<T>(value: T): asserts value is NonNullable<T> {}
+
 export function unzip2<T, U>(pairs: Iterable<[T, U]>): [T[], U[]] {
   const lst1: T[] = [];
   const lst2: U[] = [];

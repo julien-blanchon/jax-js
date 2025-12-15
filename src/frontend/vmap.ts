@@ -1,4 +1,12 @@
-import { checkAxis, deepEqual, range, rep, unzip2, zip } from "../utils";
+import {
+  assertNonNull,
+  checkAxis,
+  deepEqual,
+  range,
+  rep,
+  unzip2,
+  zip,
+} from "../utils";
 import { eye, pureArray } from "./array";
 import {
   AbstractValue,
@@ -145,6 +153,13 @@ class BatchTrace extends Trace {
     if (vmapRule === undefined) {
       throw new Error(`No vmap rule for: ${primitive}`);
     }
+    if (bdimsIn.every((d) => d === null)) {
+      // This should not usually happen because `fullLower()` would unwrap the
+      // BatchTracer before getting here. However, I'm not sure about this in
+      // edge cases, so it's better to just be safe.
+      const valOuts = bind(primitive, valsIn, params);
+      return valOuts.map((x) => new BatchTracer(this, x, null));
+    }
     const [valOuts, bdimOuts] = vmapRule(
       this.axisSize,
       valsIn,
@@ -161,6 +176,10 @@ class BatchTrace extends Trace {
   }
 }
 
+// Apply a primitive to batched arguments with built-in broadcasting rules.
+//
+// This defines "how" a primitive should be vectorized over batch dimensions.
+// The caller is guaranteed to pass at least one of `dims` as non-null.
 type VmapRule<P extends Primitive> = (
   axisSize: number,
   args: Tracer[],
@@ -186,10 +205,6 @@ function broadcastBatcher(op: (...x: Tracer[]) => Tracer): VmapRule<Primitive> {
     }
 
     const idx = dims.findIndex((d) => d !== null);
-    if (idx === -1) {
-      // No-op case: no mapped indices, just pass it down to the parent tracer.
-      return [[op(...args)], [null]];
-    }
     if (
       // If only agreeing batch dims, or scalars, just call the primitive.
       zip(args, dims).every(
@@ -246,17 +261,12 @@ const vmapRules: Partial<{ [P in Primitive]: VmapRule<P> }> = {
   [Primitive.Min]: broadcastBatcher(min),
   [Primitive.Max]: broadcastBatcher(max),
   [Primitive.Reduce](axisSize, [x], [xBdim], { op, axis }) {
-    if (xBdim === null) {
-      return [[reduce(x, op, axis)], [null]];
-    }
+    assertNonNull(xBdim);
     const newAxis = axis.map((ax) => ax + (xBdim <= ax ? 1 : 0));
     const outBdim = xBdim - axis.filter((ax) => ax < xBdim).length;
     return [[reduce(x, op, newAxis)], [outBdim]];
   },
   [Primitive.Dot](axisSize, [x, y], [xBdim, yBdim]) {
-    if (xBdim === null && yBdim === null) {
-      return [[dot(x, y)], [null]];
-    }
     // Move both the batch axes to the second-to-last position.
     x = moveBatchAxis(axisSize, xBdim, x.ndim - (xBdim === null ? 1 : 2), x);
     y = moveBatchAxis(axisSize, yBdim, y.ndim - (yBdim === null ? 1 : 2), y);
@@ -272,41 +282,36 @@ const vmapRules: Partial<{ [P in Primitive]: VmapRule<P> }> = {
       {},
     );
   },
-  // TODO: where, transpose
+  // TODO: where
+  [Primitive.Transpose](axisSize, [x], [xBdim], { perm }) {
+    assertNonNull(xBdim);
+    const newPerm = perm.map((p) => p + (xBdim <= p ? 1 : 0));
+    newPerm.splice(xBdim, 0, xBdim); // Keep the batch dim in place.
+    return [[transpose(x, newPerm)], [xBdim]];
+  },
   [Primitive.Broadcast](axisSize, [x], [xBdim], { shape, axis }) {
-    if (xBdim === null) {
-      return [[broadcast(x, shape, axis)], [null]];
-    }
+    assertNonNull(xBdim);
     const newShape = shape.toSpliced(xBdim, 0, axisSize);
     const newAxis = axis.map((ax) => ax + (xBdim <= ax ? 1 : 0));
     return [[broadcast(x, newShape, newAxis)], [xBdim]];
   },
   [Primitive.Reshape](axisSize, [x], [xBdim], { shape }) {
-    if (xBdim === null) {
-      return [[reshape(x, shape)], [null]];
-    }
     // Move xBdim to the front, so reshape can have contiguous axes.
     x = moveBatchAxis(axisSize, xBdim, 0, x);
     return [[reshape(x, [axisSize, ...shape])], [0]];
   },
   [Primitive.Flip](axisSize, [x], [xBdim], { axis }) {
-    if (xBdim === null) {
-      return [[flip(x, axis)], [null]];
-    }
+    assertNonNull(xBdim);
     const newAxis = axis.map((ax) => ax + (xBdim <= ax ? 1 : 0));
     return [[flip(x, newAxis)], [xBdim]];
   },
   [Primitive.Shrink](axisSize, [x], [xBdim], { slice }) {
-    if (xBdim === null) {
-      return [[shrink(x, slice)], [null]];
-    }
+    assertNonNull(xBdim);
     const newSlice = slice.toSpliced(xBdim, 0, [0, axisSize]);
     return [[shrink(x, newSlice)], [xBdim]];
   },
   [Primitive.Pad](axisSize, [x], [xBdim], { width }) {
-    if (xBdim === null) {
-      return [[pad(x, width)], [null]];
-    }
+    assertNonNull(xBdim);
     const newWidth = width.toSpliced(xBdim, 0, [0, 0]);
     return [[pad(x, newWidth)], [xBdim]];
   },
