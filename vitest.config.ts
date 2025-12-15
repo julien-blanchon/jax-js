@@ -8,7 +8,6 @@ export default defineConfig({
     },
   },
   test: {
-    setupFiles: ["test/setup.ts"],
     browser: {
       enabled: true,
       headless: true,
@@ -17,5 +16,11 @@ export default defineConfig({
       // https://vitest.dev/config/browser/playwright.html
       instances: [{ browser: "chromium" }],
     },
+    coverage: {
+      // coverage is disabled by default, run with `pnpm test:coverage`.
+      enabled: false,
+      provider: "v8",
+    },
+    setupFiles: ["test/setup.ts"],
   },
 });

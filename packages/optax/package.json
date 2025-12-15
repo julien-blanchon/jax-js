@@ -19,7 +19,7 @@
   },
   "type": "module",
   "files": [
-    "/dist"
+    "/dist/*.{js,cjs,d.ts,d.cts}"
   ],
   "main": "dist/index.js",
   "exports": {
