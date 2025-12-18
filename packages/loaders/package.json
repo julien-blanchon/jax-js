@@ -1,6 +1,6 @@
 {
   "name": "@jax-js/loaders",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "Persistent, OPFS-based cache for downloding large files like model weights in browser",
   "keywords": [
     "machine learning",
