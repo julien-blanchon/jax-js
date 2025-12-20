@@ -852,7 +852,7 @@ export class AluExp implements FpHashable {
     // These are needed to simplify expressions like pool() in conv2d. Otherwise
     // the resulting expressions are complex and slow.
 
-    if (op === AluOp.Mod || (op === AluOp.Idiv && src[1].#isConstInt())) {
+    if ((op === AluOp.Mod || op === AluOp.Idiv) && src[1].#isConstInt()) {
       const [x, y] = src;
 
       // divide_by_gcd: https://github.com/tinygrad/tinygrad/blob/d1224a7/tinygrad/uop/symbolic.py#L190

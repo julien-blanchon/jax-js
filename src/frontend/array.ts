@@ -816,6 +816,9 @@ export class Array extends Tracer {
       [Primitive.Idiv]([x, y]) {
         return [x.#binary(AluOp.Idiv, y)];
       },
+      [Primitive.Mod]([x, y]) {
+        return [x.#binary(AluOp.Mod, y)];
+      },
       [Primitive.Neg]([x]) {
         return [zerosLike(x.ref).#binary(AluOp.Sub, x)];
       },

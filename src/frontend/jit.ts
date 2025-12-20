@@ -499,13 +499,14 @@ const jitRules: { [P in Primitive]: JitRule<P> } = {
   [Primitive.Add]: broadcastedJit(([a, b]) => AluExp.add(a, b)),
   [Primitive.Mul]: broadcastedJit(([a, b]) => AluExp.mul(a, b)),
   [Primitive.Idiv]: broadcastedJit(([a, b]) => AluExp.idiv(a, b)),
+  [Primitive.Mod]: broadcastedJit(([a, b]) => AluExp.mod(a, b)),
   [Primitive.Neg]: unopJit((a) => AluExp.sub(AluExp.const(a.dtype, 0), a)),
   [Primitive.Reciprocal]: unopJit(AluExp.reciprocal),
   [Primitive.StopGradient]: unopJit((a) => a), // No-op, just return the input.
   [Primitive.Cast]: unopJit((a, { dtype }) => AluExp.cast(dtype, a)),
   [Primitive.Bitcast]: unopJit((a, { dtype }) => AluExp.bitcast(dtype, a)),
   [Primitive.RandomBits]: (nargs, keys, keyShapes, { shape, mode }) => {
-    const mapping = (st: ShapeTracker) => {
+    const mapping = (st: ShapeTracker): ShapeTracker | undefined => {
       if (!deepEqual(st.shape, shape))
         return st.broadcast(shape, range(shape.length - st.shape.length));
     };

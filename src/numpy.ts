@@ -1020,6 +1020,16 @@ export const fmod = jit(function fmod(x: Array, y: Array): Array {
   return x.ref.sub(y.ref.mul(core.idiv(x, y) as Array));
 });
 
+/**
+ * @function
+ * Calculate element-wise remainder of the division (matches sign of y).
+ */
+export const remainder = jit(function remainder(x: Array, y: Array): Array {
+  // The `Mod` primitive matches the sign of x, following JS rounding rules.
+  // This function must match the sign of y instead.
+  return core.mod(core.mod(x, y.ref).add(y.ref), y) as Array;
+});
+
 /** @function Alias of `jax.numpy.trueDivide()`. */
 export const divide = trueDivide;
 

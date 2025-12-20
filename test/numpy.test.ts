@@ -5,6 +5,7 @@ import {
   init,
   jvp,
   numpy as np,
+  vmap,
 } from "@jax-js/jax";
 import { beforeEach, expect, suite, test } from "vitest";
 
@@ -726,6 +727,46 @@ suite.each(devices)("device:%s", (device) => {
       const y = np.array([3, -4, 2, -3]);
       const z = np.fmod(x, y);
       expect(z.js()).toEqual([2, 3, -1, -2]);
+    });
+
+    test("gradient is correct", () => {
+      const x = np.array([5, 7, -9, -11]);
+      const y = np.array([3, -4, 2, -3]);
+      const { x: dx, y: dy } = vmap(
+        grad(({ x, y }: { x: np.Array; y: np.Array }) => np.fmod(x, y)),
+      )({ x, y });
+      expect(dx.js()).toEqual([1, 1, 1, 1]);
+      expect(dy.js()).toEqual([
+        -Math.trunc(5 / 3),
+        -Math.trunc(7 / -4),
+        -Math.trunc(-9 / 2),
+        -Math.trunc(-11 / -3),
+      ]);
+    });
+  });
+
+  suite("jax.numpy.remainder()", () => {
+    test("computes element-wise remainder", () => {
+      const x = np.array([5, 5, -5, -5]);
+      const y = np.array([3, -3, 3, -3]);
+      const z = np.remainder(x, y);
+      // Should follow the sign of the divisor, like Python (but unlike JS).
+      expect(z.js()).toEqual([2, -1, 1, -2]);
+    });
+
+    test("remainder gradient is correct", () => {
+      const x = np.array([5, 5, -5, -5]);
+      const y = np.array([3, -3, 3, -3]);
+      const { x: dx, y: dy } = vmap(
+        grad(({ x, y }: { x: np.Array; y: np.Array }) => np.remainder(x, y)),
+      )({ x, y });
+      expect(dx.js()).toEqual([1, 1, 1, 1]);
+      expect(dy.js()).toEqual([
+        -Math.floor(5 / 3),
+        -Math.floor(5 / -3),
+        -Math.floor(-5 / 3),
+        -Math.floor(-5 / -3),
+      ]);
     });
   });
 

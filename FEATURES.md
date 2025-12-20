@@ -324,7 +324,7 @@ Most operations behave the same way as they do in JAX.
 | `mgrid`               | ⚪️      | Python-specific                         |
 | `min`                 | 🟢      |                                         |
 | `minimum`             | 🟢      |                                         |
-| `mod`                 | 🟠      |                                         |
+| `mod`                 | ⚪️      | Skipped for clarity, use `remainder()`  |
 | `modf`                | 🟠      |                                         |
 | `moveaxis`            | 🟢      |                                         |
 | `multiply`            | 🟢      |                                         |
@@ -386,7 +386,7 @@ Most operations behave the same way as they do in JAX.
 | `ravel_multi_index`   | 🟠      |                                         |
 | `real`                | ⚪️      | complex numbers                         |
 | `reciprocal`          | 🟢      |                                         |
-| `remainder`           | 🟠      |                                         |
+| `remainder`           | 🟢      |                                         |
 | `repeat`              | 🟢      |                                         |
 | `reshape`             | 🟢      |                                         |
 | `resize`              | 🟠      |                                         |

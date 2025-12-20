@@ -22,10 +22,12 @@ import {
   flattenFun,
   fullRaise,
   gather,
+  idiv,
   less,
   log,
   max,
   min,
+  mod,
   neg,
   newMain,
   notEqual,
@@ -137,6 +139,20 @@ const jvpRules: { [P in Primitive]: JvpRule<P> } = {
   [Primitive.Add]: linearTangentsJvp(Primitive.Add),
   [Primitive.Mul]: bilinearTangentsJvp(Primitive.Mul),
   [Primitive.Idiv]: zeroTangentsJvp(Primitive.Idiv),
+  [Primitive.Mod]([x, y], [dx, dy]) {
+    // x % y = x - y * trunc(x / y)
+    // d(x % y) = dx - dy * trunc(x / y)
+    if (!isFloatDtype(x.dtype) && !isFloatDtype(y.dtype)) {
+      dx.dispose();
+      dy.dispose();
+      return [
+        [x.ref, y.ref],
+        [zerosLike(x), zerosLike(y)],
+      ];
+    }
+    const q = idiv(x.ref, y.ref);
+    return [[mod(x, y)], [dx.sub(dy.mul(q))]];
+  },
   [Primitive.Neg]: linearTangentsJvp(Primitive.Neg),
   [Primitive.Reciprocal]([x], [dx]) {
     // d(1/x) = -x^-2 * dx

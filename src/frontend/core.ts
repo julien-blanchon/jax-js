@@ -36,6 +36,7 @@ export enum Primitive {
   Add = "add",
   Mul = "mul",
   Idiv = "idiv",
+  Mod = "mod", // uses sign of dividend, C-style, matches JS but not Python
   Neg = "neg",
   Reciprocal = "reciprocal",
   StopGradient = "stop_gradient",
@@ -116,6 +117,10 @@ export function mul(x: TracerValue, y: TracerValue) {
 
 export function idiv(x: TracerValue, y: TracerValue) {
   return bind1(Primitive.Idiv, [x, y]);
+}
+
+export function mod(x: TracerValue, y: TracerValue) {
+  return bind1(Primitive.Mod, [x, y]);
 }
 
 export function neg(x: TracerValue) {
