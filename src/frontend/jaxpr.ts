@@ -536,6 +536,29 @@ export function jaxprAsFun(jaxpr: Jaxpr): (...args: Tracer[]) => Tracer[] {
   return (...args: Tracer[]) => evalJaxpr(jaxpr, args);
 }
 
+/** Jaxpr with a collection of associated, traced constants. */
+export class ClosedJaxpr {
+  constructor(
+    readonly jaxpr: Jaxpr,
+    readonly consts: Tracer[],
+  ) {}
+
+  /** String representation of this Jaxpr. */
+  toString(): string {
+    return this.jaxpr.toString();
+  }
+
+  /** Apply a function to the underlying Jaxpr. */
+  mapJaxpr(f: (jaxpr: Jaxpr) => Jaxpr): ClosedJaxpr {
+    return new ClosedJaxpr(f(this.jaxpr), this.consts);
+  }
+
+  /** Dispose of the constants in this Jaxpr. */
+  dispose() {
+    for (const c of this.consts) c.dispose();
+  }
+}
+
 /** Tracer that records its operations to dynamically construct a Jaxpr. */
 class JaxprTracer extends Tracer {
   constructor(
@@ -649,25 +672,22 @@ class JaxprBuilder {
     return v;
   }
 
-  build(
-    inTracers: JaxprTracer[],
-    outTracers: JaxprTracer[],
-  ): { jaxpr: Jaxpr; consts: Tracer[] } {
+  build(inTracers: JaxprTracer[], outTracers: JaxprTracer[]): ClosedJaxpr {
     // Initially, concatenate the constants as the first few inputs.
-    let [constVars, consts] = unzip2(this.constVals.entries());
+    const [constVars, consts] = unzip2(this.constVals.entries());
     const t2v = this.getVar.bind(this); // Maps tracer to value.
     const inBinders = [...constVars, ...inTracers.map(t2v)];
     const outVars = outTracers.map(t2v);
-    let jaxpr = new Jaxpr(inBinders, this.eqns, outVars);
+    const jaxpr = new Jaxpr(inBinders, this.eqns, outVars);
 
     // Inline any scalar constants as Lit and remove from the input list.
     typecheckJaxpr(jaxpr);
-    [jaxpr, consts] = _inlineLiterals(jaxpr, consts);
-    return { jaxpr, consts };
+    const cjaxpr = new ClosedJaxpr(jaxpr, consts);
+    return _inlineLiterals(cjaxpr);
   }
 }
 
-function _inlineLiterals(jaxpr: Jaxpr, consts: Tracer[]): [Jaxpr, Tracer[]] {
+function _inlineLiterals({ jaxpr, consts }: ClosedJaxpr): ClosedJaxpr {
   const literals = new Map<Atom, Lit>();
   const constBinders: Var[] = [];
   const newConsts: Tracer[] = [];
@@ -698,7 +718,7 @@ function _inlineLiterals(jaxpr: Jaxpr, consts: Tracer[]): [Jaxpr, Tracer[]] {
     newOuts,
   );
   typecheckJaxpr(newJaxpr); // Double-check for sanity.
-  return [newJaxpr, newConsts];
+  return new ClosedJaxpr(newJaxpr, newConsts);
 }
 
 type AbstractEvalRule<P extends Primitive> = (
@@ -913,7 +933,7 @@ export type JitOpts = {
 export function makeJaxpr(
   f: (...args: any[]) => any,
   opts?: JitOpts,
-): (...argsIn: any) => { jaxpr: Jaxpr; consts: Tracer[]; treedef: JsTreeDef } {
+): (...argsIn: any) => { jaxpr: ClosedJaxpr; treedef: JsTreeDef } {
   return (...argsIn) => {
     const staticArgnums = new Set(opts?.staticArgnums ?? []);
     const [staticArgs, shapedArgs] = splitIdx(argsIn, staticArgnums);
@@ -937,12 +957,15 @@ export function makeJaxpr(
     const tracersOut = outs.map(
       (out: Tracer) => fullRaise(trace, out) as JaxprTracer,
     );
-    const { jaxpr, consts } = builder.build(tracersIn, tracersOut);
+    const jaxpr = builder.build(tracersIn, tracersOut);
 
     if (outTree.value === undefined) {
       throw new Error("outTree was not set in makeJaxpr");
     }
-    return { jaxpr: jaxpr.simplify(), consts, treedef: outTree.value };
+    return {
+      jaxpr: jaxpr.mapJaxpr((j) => j.simplify()),
+      treedef: outTree.value,
+    };
   };
 }
 
@@ -963,29 +986,25 @@ export function jit<F extends (...args: any[]) => any>(
     const avalsIn = treeUnflatten(inTree, avalsInFlat) as any[];
 
     const jaxprArgs = joinIdx(args.length, staticArgs, avalsIn, staticArgnums);
-    const {
-      jaxpr,
-      consts,
-      treedef: outTree,
-    } = runWithCache(cache, jaxprArgs, () => makeJaxpr(f, opts)(...jaxprArgs));
+    const { jaxpr, treedef: outTree } = runWithCache(cache, jaxprArgs, () =>
+      makeJaxpr(f, opts)(...jaxprArgs),
+    );
 
     const outs = bind(
       Primitive.Jit,
-      [...consts.map((c) => c.ref), ...argsFlat],
+      [...jaxpr.consts.map((c) => c.ref), ...argsFlat],
       {
         name: f.name || "closure",
-        jaxpr,
-        numConsts: consts.length,
+        jaxpr: jaxpr.jaxpr,
+        numConsts: jaxpr.consts.length,
       },
     );
     return treeUnflatten(outTree, outs);
   }) as OwnedFunction<F>;
 
   result.dispose = () => {
-    for (const { consts } of cache.values()) {
-      for (const c of consts) {
-        c.dispose();
-      }
+    for (const { jaxpr } of cache.values()) {
+      jaxpr.dispose();
     }
   };
 
