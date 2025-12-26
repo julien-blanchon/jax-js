@@ -1565,6 +1565,30 @@ export function std(
   return sqrt(var_(x, axis, opts));
 }
 
+/** Estimate the sample covariance of a set of variables. */
+export function cov(x: ArrayLike, y?: ArrayLike): Array {
+  // x should shape (M, N) or (N,), representing N observations of M variables.
+  x = fudgeArray(x);
+  if (x.ndim === 1) x = x.reshape([1, x.shape[0]]);
+  // optional set of additional observations, concatenated to m
+  if (y !== undefined) {
+    y = fudgeArray(y);
+    if (y.ndim === 1) y = y.reshape([1, y.shape[0]]);
+    x = vstack([x, y]);
+  }
+  const [_M, N] = x.shape;
+  x = x.ref.sub(x.mean(1, { keepdims: true })); // Center variables
+  return dot(x.ref, x.transpose()).div(N - 1); // [M, M]
+}
+
+/** Compute the Pearson correlation coefficients (in range `[-1, 1]`). */
+export function corrcoef(x: ArrayLike, y?: ArrayLike): Array {
+  const c = cov(x, y);
+  const variances = diag(c.ref);
+  const norm = sqrt(outer(variances.ref, variances));
+  return c.div(norm);
+}
+
 /** Test element-wise for positive or negative infinity, return bool array. */
 export function isinf(x: ArrayLike): Array {
   x = fudgeArray(x);

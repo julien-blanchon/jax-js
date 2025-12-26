@@ -1578,6 +1578,42 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.cov()", () => {
+    test("computes covariance matrix", () => {
+      const x = np.array([
+        [0, 1, 2],
+        [0, 1, 2],
+      ]);
+      const cov1 = np.cov(x);
+      expect(cov1.js()).toBeAllclose([
+        [1, 1],
+        [1, 1],
+      ]);
+    });
+
+    test("computes covariance matrix for anti-correlated data", () => {
+      const x = np.array([
+        [-1, 0, 1],
+        [1, 0, -1],
+      ]);
+      const cov2 = np.cov(x);
+      expect(cov2.js()).toBeAllclose([
+        [1, -1],
+        [-1, 1],
+      ]);
+    });
+
+    test("computes covariance matrix from separate arrays", () => {
+      const x = np.array([-1, 0, 1]);
+      const y = np.array([1, 0, -1]);
+      const cov3 = np.cov(x, y);
+      expect(cov3.js()).toBeAllclose([
+        [1, -1],
+        [-1, 1],
+      ]);
+    });
+  });
+
   suite("jax.numpy.isnan()", () => {
     test("identify special values", () => {
       // Test isnan and related functions (isinf, isfinite, etc.)

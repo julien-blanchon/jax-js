@@ -16,9 +16,9 @@ Other features just aren't implemented yet. But those can probably be added easi
 
 In the tables below, we use a color legend to refer to functions in JAX:
 
-- 🟢 = supported **(~40%)**
+- 🟢 = supported **(~43%)**
 - 🟡 = supported, with API limitations **(~2%)**
-- 🟠 = not supported, easy to add (<1 day) **(~38%)**
+- 🟠 = not supported, easy to add (<1 day) **(~35%)**
 - 🔴 = not supported **(~20%)**
 - ⚪️ = not applicable, will not be supported (see notes)
 
@@ -185,12 +185,12 @@ Most operations behave the same way as they do in JAX.
 | `convolve`            | 🟢      | `lax.conv_general_dilated` is supported |
 | `copy`                | ⚪️      | move semantics                          |
 | `copysign`            | 🟠      |                                         |
-| `corrcoef`            | 🟠      |                                         |
+| `corrcoef`            | 🟢      |                                         |
 | `correlate`           | 🟢      | `lax.conv_general_dilated` is supported |
 | `cos`                 | 🟢      |                                         |
 | `cosh`                | 🟢      |                                         |
 | `count_nonzero`       | 🟠      |                                         |
-| `cov`                 | 🟠      |                                         |
+| `cov`                 | 🟢      |                                         |
 | `cross`               | 🟠      |                                         |
 | `cumprod`             | 🟠      |                                         |
 | `cumsum`              | 🟡      | Quadratic-time                          |
