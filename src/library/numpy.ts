@@ -60,6 +60,7 @@ export {
 };
 
 export * as fft from "./numpy-fft";
+export * as linalg from "./numpy-linalg";
 
 export const float32 = DType.Float32;
 export const int32 = DType.Int32;
@@ -544,6 +545,13 @@ export function fliplr(x: ArrayLike): Array {
 }
 
 export { transpose as permuteDims };
+
+/** Transpose the last two dimensions of an array. */
+export function matrixTranspose(a: ArrayLike): Array {
+  if (ndim(a) < 2)
+    throw new Error(`matrixTranspose: input array must be at least 2D`);
+  return moveaxis(a, -1, -2);
+}
 
 /** Return a 1-D flattened array containing the elements of the input. */
 export function ravel(a: ArrayLike): Array {

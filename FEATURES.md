@@ -496,47 +496,51 @@ in pairs of real and imaginary parts.
 ## [`jax.numpy.linalg` module](https://docs.jax.dev/en/latest/jax.numpy.html#module-jax.numpy.linalg)
 
 Similarly, the `linalg` module has some very important operations for linear algebra and matrices.
-`cholesky()` is probably the starting point for many of these operations, and
-[it seems tricky based on upstream issues](https://github.com/jax-ml/jax/issues/16321).
+Most of these will be tricky to implement as routines with backend-specific lowering. We have
+Cholesky but are missing other building blocks like:
 
-| API                | Support | Notes |
-| ------------------ | ------- | ----- |
-| `cholesky`         | 🔴      |       |
-| `cond`             | 🔴      |       |
-| `cross`            | 🟠      |       |
-| `det`              | 🔴      |       |
-| `diagonal`         | 🟠      |       |
-| `eig`              | 🔴      |       |
-| `eigh`             | 🔴      |       |
-| `eigvals`          | 🔴      |       |
-| `eigvalsh`         | 🔴      |       |
-| `inv`              | 🔴      |       |
-| `lstsq`            | 🔴      |       |
-| `matmul`           | 🟠      |       |
-| `matrix_norm`      | 🟠      |       |
-| `matrix_power`     | 🔴      |       |
-| `matrix_rank`      | 🔴      |       |
-| `matrix_transpose` | 🟠      |       |
-| `multi_dot`        | 🟠      |       |
-| `norm`             | 🟠      |       |
-| `outer`            | 🟠      |       |
-| `pinv`             | 🔴      |       |
-| `qr`               | 🔴      |       |
-| `slogdet`          | 🔴      |       |
-| `solve`            | 🔴      |       |
-| `svd`              | 🔴      |       |
-| `svdvals`          | 🔴      |       |
-| `tensordot`        | 🟠      |       |
-| `tensorinv`        | 🔴      |       |
-| `tensorsolve`      | 🔴      |       |
-| `trace`            | 🔴      |       |
-| `vector_norm`      | 🟠      |       |
-| `vecdot`           | 🟠      |       |
+- LU decomposition (solver)
+- Householder iteration (QR, SVD, eigenvalues)
+
+| API                | Support | Notes             |
+| ------------------ | ------- | ----------------- |
+| `cholesky`         | 🟡      | Not yet on WebGPU |
+| `cond`             | 🔴      |                   |
+| `cross`            | 🟠      |                   |
+| `det`              | 🔴      |                   |
+| `diagonal`         | 🟢      |                   |
+| `eig`              | 🔴      |                   |
+| `eigh`             | 🔴      |                   |
+| `eigvals`          | 🔴      |                   |
+| `eigvalsh`         | 🔴      |                   |
+| `inv`              | 🔴      |                   |
+| `lstsq`            | 🔴      |                   |
+| `matmul`           | 🟢      |                   |
+| `matrix_norm`      | 🟠      |                   |
+| `matrix_power`     | 🔴      |                   |
+| `matrix_rank`      | 🔴      |                   |
+| `matrix_transpose` | 🟢      |                   |
+| `multi_dot`        | 🟠      |                   |
+| `norm`             | 🟠      |                   |
+| `outer`            | 🟢      |                   |
+| `pinv`             | 🔴      |                   |
+| `qr`               | 🔴      |                   |
+| `slogdet`          | 🔴      |                   |
+| `solve`            | 🔴      |                   |
+| `svd`              | 🔴      |                   |
+| `svdvals`          | 🔴      |                   |
+| `tensordot`        | 🟢      |                   |
+| `tensorinv`        | 🔴      |                   |
+| `tensorsolve`      | 🔴      |                   |
+| `trace`            | 🟢      |                   |
+| `vector_norm`      | 🟠      |                   |
+| `vecdot`           | 🟢      |                   |
 
 ## [`jax.lax` module](https://docs.jax.dev/en/latest/jax.lax.html)
 
-Only a few functions in `jax.lax` have been implemented, notably `conv_general_dilated` for
-convolutions and `dot` for general tensor contractions.
+Only a few functions in `jax.lax` have been implemented, notably `conv_general_dilated()` for
+convolutions and `dot()` for general tensor contractions. Also, `linalg.triangular_solve()` is
+available.
 
 In the future, the library may need a rework to add support for `lax` operations, which are
 lower-level (semantics-wise, they don't do automatic type promotion). The reason why jax-js did not

@@ -12,6 +12,7 @@ import {
   broadcast,
   cast,
   ceil,
+  cholesky,
   compare,
   conv,
   cos,
@@ -373,11 +374,13 @@ const vmapRules: Partial<{ [P in Primitive]: VmapRule<P> }> = {
   },
   [Primitive.Sort](axisSize, [x], [xBdim]) {
     assertNonNull(xBdim);
+    if (xBdim !== x.ndim - 1) return [[sort(x)], [xBdim]];
     x = moveBatchAxis(axisSize, xBdim, 0, x);
     return [[sort(x)], [0]];
   },
   [Primitive.Argsort](axisSize, [x], [xBdim]) {
     assertNonNull(xBdim);
+    if (xBdim !== x.ndim - 1) return [[argsort(x)], [xBdim]];
     x = moveBatchAxis(axisSize, xBdim, 0, x);
     return [[argsort(x)], [0]];
   },
@@ -403,9 +406,9 @@ const vmapRules: Partial<{ [P in Primitive]: VmapRule<P> }> = {
   },
   [Primitive.Cholesky](axisSize, [x], [xBdim]) {
     assertNonNull(xBdim);
+    if (xBdim < x.ndim - 2) return [[cholesky(x)], [xBdim]];
     x = moveBatchAxis(axisSize, xBdim, 0, x);
-    const L = bind1(Primitive.Cholesky, [x]);
-    return [[L], [0]];
+    return [[cholesky(x)], [0]];
   },
   [Primitive.Jit](axisSize, args, dims, { name, jaxpr }) {
     const newJaxpr = vmapJaxpr(jaxpr, axisSize, dims);
