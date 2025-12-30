@@ -12,6 +12,7 @@ import { tuneWebgpu } from "../tuner";
 import { DEBUG, findPow2, FpHash, mapSetUnion, prod, strip1 } from "../utils";
 import { erfSrc, threefrySrc } from "./webgpu/builtins";
 import {
+  calculateGrid,
   constToWgsl,
   dtypeToWgsl,
   headerWgsl,
@@ -320,12 +321,7 @@ function pipelineSource(device: GPUDevice, kernel: Kernel): ShaderInfo {
   // Determine grid size, may need to be 3D due to limits on X.
   // maxComputeWorkgroupsPerDimension ~ 65535, so we use 16384 when exceeded.
   const gridSize = Math.ceil(tune.threadCount / workgroupSize);
-  let gridX = gridSize;
-  let gridY = 1;
-  if (gridSize > device.limits.maxComputeWorkgroupsPerDimension) {
-    gridX = 16384; // 2^14
-    gridY = Math.ceil(gridSize / gridX);
-  }
+  const [gridX, gridY] = calculateGrid(gridSize);
 
   emit(
     "",

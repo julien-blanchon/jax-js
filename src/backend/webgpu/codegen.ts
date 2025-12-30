@@ -63,3 +63,17 @@ export function constToWgsl(dtype: DType, value: any): string {
   }
   throw new Error(`Unsupported const dtype: ${dtype}`);
 }
+
+export const gridOffsetY = 16384;
+
+export function calculateGrid(gridSize: number): [number, number] {
+  let gridX = gridSize;
+  let gridY = 1;
+  // https://web3dsurvey.com/webgpu/limits/maxComputeWorkgroupsPerDimension
+  // device.limits.maxComputeWorkgroupsPerDimension = 65535
+  if (gridSize > 65535) {
+    gridX = gridOffsetY;
+    gridY = Math.ceil(gridSize / gridOffsetY);
+  }
+  return [gridX, gridY];
+}
