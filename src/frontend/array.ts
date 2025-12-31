@@ -1041,7 +1041,7 @@ export class Array extends Tracer {
           outputShapes: [x.aval.shape, x.aval.shape],
           outputDtypes: [x.aval.dtype, DType.Int32],
         });
-        return Array.#routine(routine, [x], [false]);
+        return Array.#routine(routine, [x], [x.#weakType, false]);
       },
       [Primitive.TriangularSolve]([a, b], { unitDiagonal }) {
         const routine = new Routine(

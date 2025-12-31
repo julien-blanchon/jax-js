@@ -662,9 +662,8 @@ function combineUniforms(
       throw new Error("webgpu: Uniform mismatch between shader passes");
     }
   }
-  const alignedSize = Math.ceil(
-    uniforms[0].byteLength / device.limits.minUniformBufferOffsetAlignment,
-  );
+  const alignment = device.limits.minUniformBufferOffsetAlignment;
+  const alignedSize = Math.ceil(uniforms[0].byteLength / alignment) * alignment;
   const buffer = device.createBuffer({
     size: alignedSize * uniforms.length,
     usage: GPUBufferUsage.UNIFORM,
