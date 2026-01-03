@@ -414,6 +414,62 @@ export function flip(x: ArrayLike, axis: core.Axis = null): Array {
 }
 
 /**
+ * Split an array into multiple sub-arrays along an axis.
+ *
+ * @param a - The input array to split.
+ * @param indicesOrSections - If an integer, it indicates the number of equal
+ * sections to create along the specified axis. If a list of integers, it
+ * specifies the indices at which to split the array.
+ * @param axis - The axis along which to split the array. Default is 0.
+ */
+export function split(
+  a: ArrayLike,
+  indicesOrSections: number | number[],
+  axis: number = 0,
+): Array[] {
+  a = fudgeArray(a);
+  axis = checkAxis(axis, a.ndim);
+  const size = a.shape[axis];
+  let sizes: number[];
+  if (typeof indicesOrSections === "number") {
+    if (size % indicesOrSections !== 0) {
+      throw new Error(
+        `Array of size ${size} cannot be split into ${indicesOrSections} equal parts`,
+      );
+    }
+    const partSize = size / indicesOrSections;
+    sizes = rep(indicesOrSections, partSize);
+  } else {
+    const indices = indicesOrSections;
+    sizes = [indices[0]];
+    for (let i = 1; i < indices.length; i++)
+      sizes.push(indices[i] - indices[i - 1]);
+    sizes.push(size - indices[indices.length - 1]);
+  }
+  // Split in groups of up to 8 outputs, as the transpose rule turns into a
+  // Concatenate primitive that has limited input arguments.
+  const results: Array[] = [];
+  for (let i = 0; i < sizes.length; i += 7) {
+    if (i === sizes.length) {
+      results.push(a);
+      break;
+    } else if (i + 8 >= sizes.length) {
+      results.push(...(core.split(a, axis, sizes.slice(i)) as Array[]));
+      break;
+    } else {
+      const groupSizes = [
+        ...sizes.slice(i, i + 7),
+        sizes.slice(i + 7).reduce((x, y) => x + y, 0),
+      ];
+      const outs = core.split(a, axis, groupSizes) as Array[];
+      results.push(...outs.slice(0, -1));
+      a = outs[outs.length - 1];
+    }
+  }
+  return results;
+}
+
+/**
  * Join a sequence of arrays along an existing axis.
  *
  * The arrays must have the same shape, except in the dimension corresponding to
@@ -421,10 +477,9 @@ export function flip(x: ArrayLike, axis: core.Axis = null): Array {
  *
  * No scalars can be passed to this function, as the axis is then ambiguous.
  */
-export function concatenate(xs: Array[], axis: number = 0) {
-  if (xs.length === 0) {
+export function concatenate(xs: Array[], axis: number = 0): Array {
+  if (xs.length === 0)
     throw new Error("Need at least one array to concatenate");
-  }
   const shapes = xs.map(shape);
   axis = checkAxis(axis, shapes[0].length);
   for (let i = 1; i < shapes.length; i++) {
@@ -433,20 +488,16 @@ export function concatenate(xs: Array[], axis: number = 0) {
       !shapes[i].every((d, j) => j === axis || d === shapes[0][j])
     ) {
       throw new Error(
-        `Cannot concatenate arrays with shapes ${JSON.stringify(shapes)} along axis ${axis}`,
+        `Cannot concatenate arrays ${xs[0].aval} and ${xs[i].aval} along axis ${axis}`,
       );
     }
   }
-  const makePadAxis = (start: number, end: number): [number, number][] =>
-    shapes[0].map((_, i) => (i === axis ? [start, end] : [0, 0]));
+  // Concatenate the arrays in groups of 8 to avoid possibly exceeding the
+  // `maxArgs` of the backend.
   let result = xs[0];
-  for (let i = 1; i < xs.length; i++) {
-    const len1 = result.shape[axis];
-    const len2 = shapes[i][axis];
-    // Concatenate arrays by padding with zeros and adding them together.
-    result = pad(result, makePadAxis(0, len2)).add(
-      pad(xs[i], makePadAxis(len1, 0)),
-    );
+  for (let i = 1; i < xs.length; i += 7) {
+    const group = xs.slice(i, i + 7);
+    result = core.concatenate([result, ...group], axis) as Array;
   }
   return result;
 }
@@ -460,7 +511,7 @@ export function concatenate(xs: Array[], axis: number = 0) {
  *
  * All shapes must have the same shape.
  */
-export function stack(xs: ArrayLike[], axis: number = 0) {
+export function stack(xs: ArrayLike[], axis: number = 0): Array {
   if (xs.length === 0) {
     throw new Error("Need at least one array to stack");
   }
