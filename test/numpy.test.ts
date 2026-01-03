@@ -1056,6 +1056,39 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.floorDivide()", () => {
+    test("computes element-wise floor division", () => {
+      const x = np.array([7, 7, -7, -7]);
+      const y = np.array([3, -3, 3, -3]);
+      const z = np.floorDivide(x, y);
+      // floor(7/3)=2, floor(7/-3)=-3, floor(-7/3)=-3, floor(-7/-3)=2
+      expect(z.js()).toEqual([2, -3, -3, 2]);
+    });
+
+    test("handles integer division that rounds toward negative infinity", () => {
+      const x = np.array([5, -5, 10, -10]);
+      const y = np.array([2, 2, 3, 3]);
+      const z = np.floorDivide(x, y);
+      // floor(5/2)=2, floor(-5/2)=-3, floor(10/3)=3, floor(-10/3)=-4
+      expect(z.js()).toEqual([2, -3, 3, -4]);
+    });
+
+    test("works with scalars", () => {
+      expect(np.floorDivide(7, 3).js()).toBeCloseTo(2, 5);
+      expect(np.floorDivide(-7, 3).js()).toBeCloseTo(-3, 5);
+    });
+
+    test("works with int32 dtype", () => {
+      const x = np.array([7, 7, -7, -7], { dtype: np.int32 });
+      const y = np.array([3, -3, 3, -3], { dtype: np.int32 });
+      const z = np.floorDivide(x, y);
+      // Should round toward -infinity, not toward zero
+      // floor(7/3)=2, floor(7/-3)=-3, floor(-7/3)=-3, floor(-7/-3)=2
+      expect(z.js()).toEqual([2, -3, -3, 2]);
+      expect(z.dtype).toBe(np.int32);
+    });
+  });
+
   suite("jax.numpy.fmod()", () => {
     test("computes element-wise fmod", () => {
       const x = np.array([5, 7, -9, -11]);
