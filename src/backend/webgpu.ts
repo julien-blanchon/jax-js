@@ -412,9 +412,13 @@ function pipelineSource(device: GPUDevice, kernel: Kernel): ShaderInfo {
       } else if (op === AluOp.Idiv)
         source = isFloatDtype(dtype) ? `trunc(${a} / ${b})` : `(${a} / ${b})`;
       else if (op === AluOp.Mod) source = `(${a} % ${b})`;
-      else if (op === AluOp.Min) source = `min(${strip1(a)}, ${strip1(b)})`;
-      else if (op === AluOp.Max) source = `max(${strip1(a)}, ${strip1(b)})`;
-      else if (op === AluOp.Cmplt) source = `(${a} < ${b})`;
+      else if (op === AluOp.Min) {
+        if (dtype === DType.Bool) source = `(${a} && ${b})`;
+        else source = `min(${strip1(a)}, ${strip1(b)})`;
+      } else if (op === AluOp.Max) {
+        if (dtype === DType.Bool) source = `(${a} || ${b})`;
+        else source = `max(${strip1(a)}, ${strip1(b)})`;
+      } else if (op === AluOp.Cmplt) source = `(${a} < ${b})`;
       else if (op === AluOp.Cmpne) {
         // Edge case: WebGPU doesn't handle NaN correctly, it's unspecified.
         // This is a reliable way I found to detect NaNs, since the spec says

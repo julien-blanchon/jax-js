@@ -368,7 +368,11 @@ function translateExp(
         if (isFloatDtype(dtype)) {
           if (op === AluOp.Min) dtyF(cg, op, dtype).min();
           else dtyF(cg, op, dtype).max();
-        } else if (dtype === DType.Int32 || dtype === DType.Uint32) {
+        } else if (
+          dtype === DType.Int32 ||
+          dtype === DType.Uint32 ||
+          dtype === DType.Bool
+        ) {
           // Wasm has no i32.min, so emulate with select.
           const a = cg.local.declare(cg.i32);
           const b = cg.local.declare(cg.i32);

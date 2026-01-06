@@ -69,7 +69,6 @@ export class WebGLBackend implements Backend {
     this.#buffers = new Map();
     this.#programCache = new Map();
     this.#nextSlot = 1;
-    this.#fbo = null as any; // Will be initialized with `this.gl`
   }
 
   /**

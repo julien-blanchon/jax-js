@@ -976,6 +976,13 @@ suite.each(devices)("device:%s", (device) => {
       expect(z.js()).toEqual([1, 2, 0]);
       expect(dz.js()).toEqual([1, 0, 0]);
     });
+
+    test("minimum of bools", () => {
+      const x = np.array([true, false, true]);
+      const y = np.array([false, false, true]);
+      const z = np.minimum(x, y);
+      expect(z.js()).toEqual([false, false, true]);
+    });
   });
 
   suite("jax.numpy.maximum()", () => {
