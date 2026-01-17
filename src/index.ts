@@ -44,11 +44,17 @@ export {
  */
 export const jvp = jvpModule.jvp as <
   F extends (...args: any[]) => JsTree<Array>,
+  HA extends boolean = false,
 >(
   f: F,
   primals: MapJsTree<Parameters<F>, Array, ArrayLike>,
   tangents: MapJsTree<Parameters<F>, Array, ArrayLike>,
-) => [ReturnType<F>, ReturnType<F>];
+  opts?: { hasAux?: HA },
+) => HA extends true
+  ? ReturnType<F> extends [infer Out, infer Aux]
+    ? [Out, Out, Aux]
+    : never
+  : [ReturnType<F>, ReturnType<F>];
 
 /**
  * @function
@@ -126,18 +132,49 @@ export const linearize = linearizeModule.linearize as <
 /**
  * @function
  * Calculate the reverse-mode vector-Jacobian product for a function.
+ *
+ * The return value is a tuple of `[out, vjpFn]`, where `out` is the output of
+ * `f(primals)`, and `vjpFn` is a function that takes in cotangents for each
+ * output and returns the cotangents for each input.
+ *
+ * When `{ hasAux: true }` is passed, the function `f` is expected to return an
+ * `[out, aux]` tuple, and `vjp` returns `[out, vjpFn, aux]`.
+ *
+ * @example
+ * ```ts
+ * const [y, vjpFn] = vjp(f, [x]);
+ *
+ * // With hasAux
+ * const [y, vjpFn, aux] = vjp(f, [x], { hasAux: true });
+ * ```
  */
 export const vjp = linearizeModule.vjp as <
   F extends (...args: any[]) => JsTree<Array>,
+  const HA extends boolean = false,
 >(
   f: F,
   primals: MapJsTree<Parameters<F>, Array, ArrayLike>,
-) => [
-  ReturnType<F>,
-  (
-    cotangents: MapJsTree<ReturnType<F>, Array, ArrayLike>,
-  ) => MapJsTree<Parameters<F>, ArrayLike, Array>,
-];
+  opts?: { hasAux?: HA },
+) => HA extends true
+  ? ReturnType<F> extends [infer Out, infer Aux]
+    ? [
+        Out,
+        OwnedFunction<
+          (
+            cotangents: MapJsTree<Out, Array, ArrayLike>,
+          ) => MapJsTree<Parameters<F>, ArrayLike, Array>
+        >,
+        Aux,
+      ]
+    : never
+  : [
+      ReturnType<F>,
+      OwnedFunction<
+        (
+          cotangents: MapJsTree<ReturnType<F>, Array, ArrayLike>,
+        ) => MapJsTree<Parameters<F>, ArrayLike, Array>
+      >,
+    ];
 
 /** @inline */
 type GradOutputType<I, F extends (...args: any[]) => any> = MapJsTree<
@@ -160,27 +197,65 @@ type GradOutputType<I, F extends (...args: any[]) => any> = MapJsTree<
  * Pass in different `argnums` to differentiate with respect to other
  * arguments. If a tuple is provided, the return value will be a tuple of
  * gradients corresponding to each argument index.
+ *
+ * When `{ hasAux: true }` is passed, the function `f` is expected to return a
+ * `[out, aux]` tuple, and the return value will be `[gradient, aux]`.
+ *
+ * @example
+ * ```ts
+ * const gradient = grad(f)(x);
+ *
+ * // With `argnums`
+ * const [gradientX, gradientZ] = grad(f, { argnums: [0, 2] })(x, y, z);
+ *
+ * // With `hasAux`
+ * const [gradient, aux] = grad(f, { hasAux: true })(x);
+ * ```
  */
 export const grad = linearizeModule.grad as <
   F extends (...args: any[]) => JsTree<Array>,
   const I extends undefined | number | number[] = undefined,
+  const HA extends boolean = false,
 >(
   f: F,
-  opts?: Omit<linearizeModule.GradOpts, "argnums"> & { argnums: I },
+  opts?: Omit<linearizeModule.GradOpts, "argnums" | "hasAux"> & {
+    argnums?: I;
+    hasAux?: HA;
+  },
 ) => (
   ...primals: MapJsTree<Parameters<F>, Array, ArrayLike>
-) => GradOutputType<I, F>;
+) => HA extends true
+  ? ReturnType<F> extends [any, infer Aux]
+    ? [GradOutputType<I, F>, Aux]
+    : never
+  : GradOutputType<I, F>;
 
 /**
  * @function
  * Create a function that evaluates both `f` and the gradient of `f`.
+ *
+ * When `{ hasAux: true }` is passed, the function `f` is expected to return an
+ * `[out, aux]` tuple, and the return value will be `[[out, aux], gradient]`.
+ *
+ * @example
+ * ```ts
+ * // Without hasAux
+ * const [value, gradient] = valueAndGrad(f)(x);
+ *
+ * // With hasAux
+ * const [[value, aux], gradient] = valueAndGrad(f, { hasAux: true })(x);
+ * ```
  */
 export const valueAndGrad = linearizeModule.valueAndGrad as <
   F extends (...args: any[]) => JsTree<Array>,
-  I extends undefined | number | number[] = undefined,
+  const I extends undefined | number | number[] = undefined,
+  const HA extends boolean = false,
 >(
   f: F,
-  opts?: Omit<linearizeModule.GradOpts, "argnums"> & { argnums: I },
+  opts?: Omit<linearizeModule.GradOpts, "argnums"> & {
+    argnums?: I;
+    hasAux?: HA;
+  },
 ) => (
   ...primals: MapJsTree<Parameters<F>, Array, ArrayLike>
 ) => [ReturnType<F>, GradOutputType<I, F>];

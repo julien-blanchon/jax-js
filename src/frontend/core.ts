@@ -571,6 +571,10 @@ export function newDynamic(main: MainTrace): Disposable {
   };
 }
 
+export function currentTraceLevel(): number {
+  return traceStack[traceStack.length - 1].level;
+}
+
 export type TracerValue = Tracer | number | boolean;
 
 export abstract class Trace {
@@ -1223,11 +1227,11 @@ export class TreeMismatchError extends TypeError {
   }
 }
 
-export function flattenFun(
-  f: any,
-  inTree: JsTreeDef,
-): [any, { value: JsTreeDef | undefined }] {
-  const store: { value: JsTreeDef | undefined } = { value: undefined };
+type Store<T> = { value: T | undefined };
+
+/** Flatten a function of `JsTree` input/output for use in tracing. */
+export function flattenFun(f: any, inTree: JsTreeDef): [any, Store<JsTreeDef>] {
+  const store: Store<JsTreeDef> = { value: undefined };
   const flatFun = (...argsFlat: any[]) => {
     const pytreeArgs = treeUnflatten(inTree, argsFlat);
     const out = f(...pytreeArgs);
@@ -1236,6 +1240,30 @@ export function flattenFun(
     return outFlat;
   };
   return [flatFun, store];
+}
+
+/** Like flattenFun, but expects f to return [main, aux] tuple. */
+export function flattenFunWithAux(
+  f: any,
+  inTree: JsTreeDef,
+): [any, Store<JsTreeDef>, Store<any>] {
+  const store: Store<JsTreeDef> = { value: undefined };
+  const auxStore: Store<any> = { value: undefined };
+  const flatFun = (...argsFlat: any[]) => {
+    const pytreeArgs = treeUnflatten(inTree, argsFlat);
+    const result = f(...pytreeArgs);
+    if (!Array.isArray(result) || result.length !== 2) {
+      throw new Error(
+        "Function with `hasAux: true` must return [output, aux] tuple",
+      );
+    }
+    const [out, aux] = result;
+    const [outFlat, outTree] = treeFlatten(out);
+    store.value = outTree;
+    auxStore.value = aux;
+    return outFlat;
+  };
+  return [flatFun, store, auxStore];
 }
 
 export class UseAfterFreeError extends ReferenceError {
