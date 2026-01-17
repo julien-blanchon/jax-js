@@ -117,7 +117,7 @@ export const linearize = linearizeModule.linearize as <
   F extends (...args: any[]) => JsTree<Array>,
 >(
   f: F,
-  ...primals: MapJsTree<Parameters<F>, Array, ArrayLike>
+  primals: MapJsTree<Parameters<F>, Array, ArrayLike>,
 ) => [
   ReturnType<F>,
   (...tangents: MapJsTree<Parameters<F>, Array, ArrayLike>) => ReturnType<F>,
@@ -131,7 +131,7 @@ export const vjp = linearizeModule.vjp as <
   F extends (...args: any[]) => JsTree<Array>,
 >(
   f: F,
-  ...primals: MapJsTree<Parameters<F>, Array, ArrayLike>
+  primals: MapJsTree<Parameters<F>, Array, ArrayLike>,
 ) => [
   ReturnType<F>,
   (

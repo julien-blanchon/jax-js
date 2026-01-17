@@ -109,14 +109,17 @@ suite("jax.makeJaxpr()", () => {
 
 suite("jax.linearize()", () => {
   test("works for scalars", () => {
-    const [y, lin] = linearize(np.sin, 3);
+    const [y, lin] = linearize(np.sin, [3]);
     expect(y).toBeAllclose(np.sin(3));
     expect(lin(1)).toBeAllclose(np.cos(3));
     expect(lin(-42)).toBeAllclose(np.cos(3).mul(-42));
   });
 
   test("works for simple arrays", () => {
-    const [y, lin] = linearize((x: np.Array) => x.ref.mul(x), np.array([2, 3]));
+    const [y, lin] = linearize(
+      (x: np.Array) => x.ref.mul(x),
+      [np.array([2, 3])],
+    );
     expect(y).toBeAllclose(np.array([4, 9]));
     expect(lin(np.array([1, 0]))).toBeAllclose(np.array([4, 0]));
     expect(lin(np.array([0, 1]))).toBeAllclose(np.array([0, 6]));
@@ -128,7 +131,7 @@ suite("jax.linearize()", () => {
         r1: x.a.ref.mul(x.a).add(x.b.ref),
         r2: x.b,
       }),
-      { a: 1, b: 2 },
+      [{ a: 1, b: 2 }],
     );
     expect(y.r1).toBeAllclose(3);
     expect(y.r2).toBeAllclose(2);
@@ -141,7 +144,7 @@ suite("jax.linearize()", () => {
 
 suite("jax.vjp()", () => {
   test("works for scalars", () => {
-    const [y, backward] = vjp(np.sin, 3);
+    const [y, backward] = vjp(np.sin, [3]);
     expect(y).toBeAllclose(np.sin(3));
     expect(backward(1)[0]).toBeAllclose(np.cos(3));
   });

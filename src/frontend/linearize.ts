@@ -153,7 +153,7 @@ function linearizeFlat(
 
 export function linearize(
   f: (...primals: any[]) => any,
-  ...primalsIn: any[]
+  primalsIn: any[],
 ): [any, OwnedFunction<(...tangents: any[]) => any>] {
   const [primalsInFlat, inTree] = treeFlatten(primalsIn);
   const [fFlat, outTree] = flattenFun(f, inTree);
@@ -953,7 +953,7 @@ function vjpFlat(
 
 export function vjp(
   f: (...primals: any) => any,
-  ...primalsIn: any
+  primalsIn: any[],
 ): [any, OwnedFunction<(...cotangents: any) => any>] {
   const [primalsInFlat, inTree] = treeFlatten(primalsIn);
   const [fFlat, outTree] = flattenFun(f, inTree);
@@ -995,7 +995,7 @@ export function valueAndGrad(f: (...primals: any) => Tracer) {
       throw new Error("grad requires at least one argument to differentiate");
     }
     // JAX convention, differentiate with respect to the first argument.
-    const [y, fVjp] = vjp(f, x[0], ...x.slice(1).map(stopGradient));
+    const [y, fVjp] = vjp(f, [x[0], ...x.slice(1).map(stopGradient)]);
     if (!(y instanceof Tracer) || ndim(y) !== 0) {
       throw new TypeError("grad requires a scalar output");
     }
@@ -1017,7 +1017,7 @@ export function jacrev(f: any) {
     }
     const [size] = x.shape;
     const pullback = (ct: Tracer) => {
-      const [y, fVjp] = vjp(f, x);
+      const [y, fVjp] = vjp(f, [x]);
       y.dispose();
       const [ret] = fVjp(ct);
       fVjp.dispose();
