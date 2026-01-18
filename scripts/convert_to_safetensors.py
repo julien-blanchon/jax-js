@@ -67,13 +67,10 @@ def calculate_mean_relative_deviation(
     conv_float = converted.float()
 
     # Calculate |new - old| and |old|
-    abs_diff = torch.abs(conv_float - orig_float).sum()
-    abs_orig = torch.abs(orig_float).sum()
+    abs_diff = torch.abs(conv_float - orig_float)
+    abs_orig = torch.abs(orig_float)
 
-    if abs_orig == 0:
-        return 0.0
-
-    return (abs_diff / abs_orig).item()
+    return (abs_diff / (abs_orig + 1e-9)).mean().item()
 
 
 def format_size(size_bytes: int) -> str:
@@ -306,10 +303,10 @@ def add_tree_nodes(tree: CompactTree, structure: Dict[str, Any], parent_name: st
             if size_str:
                 label.append(f"({size_str})", style="yellow")
 
-            # Add deviation in red if > 1%
+            # Add deviation in red if >.1%
             if data.get("_deviation") is not None:
                 deviation = data["_deviation"]
-                if deviation > 0.01:  # 1%
+                if deviation > 0.001:  # .1%
                     label.append(f" [deviation: {deviation:.2%}]", style="bold red")
 
             tree.add(label)
