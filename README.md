@@ -343,8 +343,9 @@ That's all for this short tutorial. Please see the generated
 If you make something cool with jax-js, don't be a stranger! We can feature it here.
 
 - [Training neural networks on MNIST](https://jax-js.com/mnist)
+- [Voice cloning: Kyutai Pocket TTS](https://jax-js.com/tts)
 - [CLIP embeddings for books in-browser](https://jax-js.com/mobileclip)
-- [Object detection with DETR ResNet-50 (ONNX)](https://jax-js.com/detr-resnet-50)
+- [Object detection: DETR ResNet-50 (ONNX)](https://jax-js.com/detr-resnet-50)
 - [In-browser REPL](https://jax-js.com/repl)
 - [Matmul benchmark](https://jax-js.com/bench/matmul)
 - [Conv2d benchmark](https://jax-js.com/bench/conv2d)

@@ -19,6 +19,40 @@
   };
 
   let installMode = $state<"npm" | "web">("npm");
+
+  const links = [
+    {
+      title: "GitHub Repository",
+      href: "https://github.com/ekzhang/jax-js",
+      description: "Get started with jax-js and check out the tutorial.",
+    },
+    {
+      title: "REPL",
+      href: resolve("/repl"),
+      description: "Try out the library in this browser-based REPL.",
+    },
+    {
+      title: "API Reference",
+      href: "https://jax-js.com/docs/",
+      description: "View the full API documentation.",
+    },
+    {
+      title: "MobileCLIP2 Inference",
+      href: resolve("/mobileclip"),
+      description:
+        "Generate embeddings for books and search them in real time.",
+    },
+    {
+      title: "Kyutai Pocket TTS",
+      href: resolve("/tts"),
+      description: "Voice cloning AI model that runs in your browser.",
+    },
+    {
+      title: "MNIST Training",
+      href: resolve("/mnist"),
+      description: "Demo of training a neural network on MNIST.",
+    },
+  ];
 </script>
 
 <svelte:head>
@@ -171,50 +205,20 @@ console.log(vmap(grad(np.square))(x));
     <h2 class="text-xl mb-6">Learn more</h2>
 
     <div class="grid sm:grid-cols-3 gap-x-6 md:gap-x-8 gap-y-4">
-      <a
-        href="https://github.com/ekzhang/jax-js"
-        class="bg-primary/5 hover:bg-primary/15 transition-colors p-4 rounded-lg"
-      >
-        <h3 class="mb-2">
-          GitHub Repository <ArrowUpRight
-            size={18}
-            class="inline-block text-gray-400 mb-px"
-          />
-        </h3>
-        <p class="text-sm text-gray-600">
-          Get started with jax-js and check out the tutorial.
-        </p>
-      </a>
-
-      <a
-        href={resolve("/mnist")}
-        class="bg-primary/5 hover:bg-primary/15 transition-colors p-4 rounded-lg"
-      >
-        <h3 class="mb-2">
-          MNIST Training <ArrowUpRight
-            size={18}
-            class="inline-block text-gray-400 mb-px"
-          />
-        </h3>
-        <p class="text-sm text-gray-600">
-          Demo of training a neural network on MNIST.
-        </p>
-      </a>
-
-      <a
-        href={resolve("/mobileclip")}
-        class="bg-primary/5 hover:bg-primary/15 transition-colors p-4 rounded-lg"
-      >
-        <h3 class="mb-2">
-          MobileCLIP2 Inference <ArrowUpRight
-            size={18}
-            class="inline-block text-gray-400 mb-px"
-          />
-        </h3>
-        <p class="text-sm text-gray-600">
-          Generate embeddings for books and search them in real time.
-        </p>
-      </a>
+      {#each links as { title, href, description }}
+        <a
+          {href}
+          class="bg-primary/5 hover:bg-primary/15 transition-colors p-4 rounded-lg"
+        >
+          <h3 class="mb-2">
+            {title}
+            <ArrowUpRight size={18} class="inline-block text-gray-400 mb-px" />
+          </h3>
+          <p class="text-sm text-gray-600">
+            {description}
+          </p>
+        </a>
+      {/each}
     </div>
   </section>
 </main>
