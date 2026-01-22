@@ -4,6 +4,7 @@ import { DType, isFloatDtype } from "../alu";
 import {
   absolute,
   add,
+  arange,
   Array,
   ArrayLike,
   clip,
@@ -464,19 +465,11 @@ export function dotProductAttention(
     mask?: ArrayLike;
     scale?: number;
     isCausal?: boolean;
-    querySeqLengths?: ArrayLike; // TODO
-    keyValueSeqLengths?: ArrayLike; // TODO
-    localWindowSize?: number | [number, number]; // TODO
+    querySeqLengths?: ArrayLike;
+    keyValueSeqLengths?: ArrayLike;
+    localWindowSize?: number | [number, number];
   } = {},
 ): Array {
-  if (
-    opts.querySeqLengths !== undefined ||
-    opts.keyValueSeqLengths !== undefined
-  )
-    throw new Error("Sequence length masking is not yet implemented");
-  if (opts.localWindowSize !== undefined)
-    throw new Error("Local attention is not yet implemented");
-
   query = fudgeArray(query);
   key = fudgeArray(key);
   value = fudgeArray(value);
@@ -535,6 +528,35 @@ export function dotProductAttention(
     // tri(L, S) creates a lower triangular boolean mask of shape [L, S]
     const causalMask = tri(L, S, 0, { dtype: DType.Bool });
     scores = where(causalMask, scores, -Infinity);
+  }
+  if (opts.localWindowSize !== undefined) {
+    const [before, after] =
+      typeof opts.localWindowSize === "number"
+        ? [opts.localWindowSize, opts.localWindowSize]
+        : opts.localWindowSize;
+    if (
+      before < 0 ||
+      after < 0 ||
+      !Number.isInteger(before) ||
+      !Number.isInteger(after)
+    ) {
+      throw new Error(
+        `dotProductAttention: localWindowSize values must be non-negative, ` +
+          `got ${opts.localWindowSize}`,
+      );
+    }
+    const localMask = tri(L, S, after, { dtype: DType.Bool }).mul(
+      tri(L, S, -before - 1, { dtype: DType.Bool }).notEqual(true),
+    );
+    scores = where(localMask, scores, -Infinity);
+  }
+  if (opts.querySeqLengths !== undefined) {
+    const sl = expandDims(opts.querySeqLengths, [-1, -2, -3]); // [B, 1, 1, 1]
+    scores = where(arange(L).reshape([1, 1, L, 1]).less(sl), scores, -Infinity);
+  }
+  if (opts.keyValueSeqLengths !== undefined) {
+    const sl = expandDims(opts.keyValueSeqLengths, [-1, -2, -3]); // [B, 1, 1, 1]
+    scores = where(arange(S).reshape([1, 1, 1, S]).less(sl), scores, -Infinity);
   }
   const attn = softmax(scores, -1); // BNLS
   const out = einsum("BNLS,BSNH->BLNH", attn, value);

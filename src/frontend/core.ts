@@ -449,22 +449,34 @@ export function shrink(x: TracerValue, slice: Pair[]) {
   return bind1(Primitive.Shrink, [x], { slice });
 }
 
-export function pad(x: TracerValue, width: number | Pair | Pair[]) {
+export function pad(
+  x: TracerValue,
+  width: number | Pair | Pair[] | Record<number, Pair>,
+) {
   const nd = ndim(x);
+  let w: Pair[];
   if (typeof width === "number") {
-    width = [[width, width]];
+    w = [[width, width]];
   } else if (isNumberPair(width)) {
-    width = [width as Pair];
-  } else if (!Array.isArray(width) || !width.every(isNumberPair)) {
+    w = [width as Pair];
+  } else if (!Array.isArray(width)) {
+    const indicesAndPairs = Object.entries(width);
+    w = rep<Pair>(nd, [0, 0]);
+    for (const [k, v] of indicesAndPairs) {
+      w[checkAxis(parseInt(k), nd)] = v;
+    }
+  } else if (!width.every(isNumberPair)) {
     throw new TypeError(`Invalid pad() type: ${JSON.stringify(width)}`);
+  } else {
+    w = width;
   }
-  if (width.length === 1) {
-    const [w0, w1] = width[0]; // A single pair should be repeated for all axes.
-    width = rep(nd, () => [w0, w1] as Pair);
-  } else if (width.length !== nd) {
-    throw new Error(`Invalid pad(): expected ${nd} axes, got ${width.length}`);
+  if (w.length === 1) {
+    const [w0, w1] = w[0]; // A single pair should be repeated for all axes.
+    w = rep(nd, () => [w0, w1] as Pair);
+  } else if (w.length !== nd) {
+    throw new Error(`Invalid pad(): expected ${nd} axes, got ${w.length}`);
   }
-  return bind1(Primitive.Pad, [x], { width });
+  return bind1(Primitive.Pad, [x], { width: w });
 }
 
 export function triangularSolve(
@@ -793,6 +805,26 @@ export abstract class Tracer {
     const castDtype = promoteTypes(originalDtype, DType.Float32);
     const result = reduce(this.astype(castDtype), AluOp.Add, axis, opts);
     return result.mul(1 / n).astype(originalDtype) as this;
+  }
+
+  /** Minimum of the elements of the array along a given axis. */
+  min(axis: Axis = null, opts?: ReduceOpts) {
+    return reduce(this, AluOp.Min, axis, opts) as this;
+  }
+
+  /** Maximum of the elements of the array along a given axis. */
+  max(axis: Axis = null, opts?: ReduceOpts) {
+    return reduce(this, AluOp.Max, axis, opts) as this;
+  }
+
+  /** Test whether all array elements along a given axis evaluate to true. */
+  all(axis: Axis = null, opts?: ReduceOpts) {
+    return this.astype(DType.Bool).min(axis, opts);
+  }
+
+  /** Test whether any array element along a given axis evaluates to true. */
+  any(axis: Axis = null, opts?: ReduceOpts) {
+    return this.astype(DType.Bool).max(axis, opts);
   }
 
   /** Permute the dimensions of an array. Defaults to reversing the axis order. */
