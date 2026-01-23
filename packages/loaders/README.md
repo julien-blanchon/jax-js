@@ -67,9 +67,10 @@ safetensors.parse(buf); // => { tensors: { ... } };
 
 ## Tokenizers
 
-Tokenization for preparing the inputs to a model. It currently supports the
-[byte-pair encoding (BPE)](https://github.com/openai/tiktoken) format for various transformers and
-CLIP.
+Tokenization for preparing the inputs to a model. It currently supports the following formats:
+
+- [Byte-pair encoding (BPE)](https://github.com/openai/tiktoken) format for various LLMs and CLIP.
+- [SentencePiece Unigram](https://github.com/google/sentencepiece) format.
 
 Since tokenizer definitions can be nontrivially large (~1 MB), their data is fetched from CDN as
 needed.
@@ -82,6 +83,8 @@ const enc = await tokenizers.getBpe("clip");
 const tokens = enc.encode("Hello, world!"); // => [ 49406, 3306, 267, 1002, ... ]
 enc.decode(tokens); // => "Hello, world!"
 ```
+
+For SentencePiece tokenizers, you can directly load then from a model file.
 
 ## WeightMapper
 
